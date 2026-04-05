@@ -2,8 +2,16 @@
 // XPMeter Improved: Main Entry Point (v2 with graph, goals, sparklines, notifs)
 // ============================================================================
 
+/// <reference path="../node_modules/alt1/dist/base/alt1api.d.ts" />
+/// <reference path="../node_modules/alt1/dist/base/imagedata-extensions.d.ts" />
+
+// @ts-ignore
 import * as a1lib from "alt1";
 import { EventBus } from "./events/EventBus";
+
+// Declare alt1 globals
+declare const alt1: any;
+declare global { interface Window { alt1: any; } }
 import { Settings } from "./settings/Settings";
 import { XpCounterReader } from "./reader/XpCounterReader";
 import { SessionTracker } from "./tracker/SessionTracker";
@@ -362,16 +370,41 @@ $("btnClearHistory")?.addEventListener("click", () => {
 // ---- Session Controls ----
 $btnSession.addEventListener("click", async () => {
   if (tracker.isSessionActive()) return;
-  $btnSession.style.display = "none";
-  $btnPause.style.display = "";
-  $btnReset.style.display = "";
+  $btnSession.disabled = true;
+  $btnSession.textContent = "Searching...";
   setStatusDot("searching");
   bus.emit("status:changed", "Searching for RuneMetrics...");
-  const pos = await reader.find();
-  tracker.startSession();
-  startSessionTimer();
-  startPolling();
-  if (settings.get("debugMode") && pos) reader.showDebugOverlay();
+
+  try {
+    const pos = await reader.find();
+
+    if (!pos) {
+      // find() returned null — restore the Start button
+      $btnSession.disabled = false;
+      $btnSession.textContent = "Start";
+      setStatusDot("error");
+      bus.emit("status:changed", "Could not find RuneMetrics. Make sure counters are visible.");
+      return;
+    }
+
+    // Success — switch to active session UI
+    $btnSession.style.display = "none";
+    $btnSession.disabled = false;
+    $btnSession.textContent = "Start";
+    $btnPause.style.display = "";
+    $btnReset.style.display = "";
+    tracker.startSession();
+    startSessionTimer();
+    startPolling();
+    if (settings.get("debugMode")) reader.showDebugOverlay();
+  } catch (err) {
+    // Unexpected error — restore the Start button
+    console.error("[XPMeter] Start failed:", err);
+    $btnSession.disabled = false;
+    $btnSession.textContent = "Start";
+    setStatusDot("error");
+    bus.emit("status:changed", "Error starting session. Try again.");
+  }
 });
 
 $btnPause.addEventListener("click", () => {

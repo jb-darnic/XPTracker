@@ -13,7 +13,35 @@ module.exports = {
     alias: {
       "@": path.resolve(__dirname, "src"),
     },
+    fallback: {
+      "canvas": false,
+      "electron": false,
+      "electron/common": false,
+      "fs": false,
+      "child_process": false,
+      "crypto": false,
+      "events": false,
+      "os": false,
+      "path": false,
+      "stream": false,
+      "util": false,
+      "node:child_process": false,
+      "node:crypto": false,
+      "node:events": false,
+      "node:os": false,
+      "node:path": false,
+      "node:stream": false,
+      "node:util": false,
+      "sharp": false,
+    },
   },
+  externals: {
+    sharp: "commonjs sharp",
+  },
+  ignoreWarnings: [
+    { module: /sharp/ },
+    { module: /canvas/ },
+  ],
   module: {
     rules: [
       { test: /\.tsx?$/, use: "ts-loader", exclude: /node_modules/ },

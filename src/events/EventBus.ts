@@ -10,7 +10,7 @@ type EventHandler<T> = (data: T) => void;
  *
  * Pattern borrowed from RuneLite's EventBus concept, adapted for TypeScript.
  */
-export class EventBus<Events extends Record<string, unknown>> {
+export class EventBus<Events extends Record<string, any>> {
   private listeners = new Map<keyof Events, Set<Function>>();
   private onceListeners = new Map<keyof Events, Set<Function>>();
 

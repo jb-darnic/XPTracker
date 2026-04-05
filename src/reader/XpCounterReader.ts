@@ -9,10 +9,20 @@
 // - Event-driven state machine instead of callback arrays
 // - Rounded value detection with explicit warning
 
+/// <reference path="../../node_modules/alt1/dist/base/alt1api.d.ts" />
+/// <reference path="../../node_modules/alt1/dist/base/imagedata-extensions.d.ts" />
+
+// @ts-ignore
 import * as a1lib from "alt1";
+// @ts-ignore
 import * as OCR from "alt1/ocr";
+// @ts-ignore
 import { webpackImages, findSubbuffer, simpleCompare, ImgRef } from "alt1/base";
 import { EventBus } from "../events/EventBus";
+
+// Declare alt1 globals
+declare const alt1: any;
+declare global { interface Window { alt1: any; } }
 import {
   CounterPosition,
   CounterSnapshot,
@@ -36,9 +46,9 @@ import {
 
 // Fonts: support multiple sizes for different interface scale settings
 const chatfonts: { size: string; def: OCR.FontDefinition }[] = [
-  { size: "10pt", def: require("alt1/fonts/chatbox/10pt.fontmeta.json") },
-  { size: "12pt", def: require("alt1/fonts/chatbox/12pt.fontmeta.json") },
-  { size: "14pt", def: require("alt1/fonts/chatbox/14pt.fontmeta.json") },
+  { size: "10pt", def: require("alt1/fonts/chatbox/10pt.js") },
+  { size: "12pt", def: require("alt1/fonts/chatbox/12pt.js") },
+  { size: "14pt", def: require("alt1/fonts/chatbox/14pt.js") },
 ];
 
 // Skill icon reference images

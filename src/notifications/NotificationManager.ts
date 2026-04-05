@@ -9,8 +9,16 @@
 //
 // Uses Web Audio API for sound and Alt1 overlay for visual alerts.
 
+/// <reference path="../../node_modules/alt1/dist/base/alt1api.d.ts" />
+/// <reference path="../../node_modules/alt1/dist/base/imagedata-extensions.d.ts" />
+
+// @ts-ignore
 import * as a1lib from "alt1/base";
 import { EventBus } from "../events/EventBus";
+
+// Declare alt1 globals
+declare const alt1: any;
+declare global { interface Window { alt1: any; } }
 import { Settings } from "../settings/Settings";
 import { SkillRate, XpMeterEvents, SkillId } from "../reader/types";
 import { xpToLevel, XP_TABLE } from "../data/xp-table";

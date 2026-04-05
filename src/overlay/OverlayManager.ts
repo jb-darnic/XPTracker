@@ -7,8 +7,16 @@
 // - Position anchoring relative to detected RuneMetrics
 // - Configurable layout (above/below/left/right)
 
+/// <reference path="../../node_modules/alt1/dist/base/alt1api.d.ts" />
+/// <reference path="../../node_modules/alt1/dist/base/imagedata-extensions.d.ts" />
+
+// @ts-ignore
 import * as a1lib from "alt1/base";
 import { EventBus } from "../events/EventBus";
+
+// Declare alt1 globals
+declare const alt1: any;
+declare global { interface Window { alt1: any; } }
 import { Settings } from "../settings/Settings";
 import { SkillRate, XpMeterEvents, CounterPosition } from "../reader/types";
 import { SKILL_DISPLAY_NAMES } from "../reader/constants";
