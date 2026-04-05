@@ -40,7 +40,7 @@
     #statusdot.error{background:var(--red);box-shadow:0 0 6px var(--red-glow);}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
 
-    #skillicon{width:28px;height:28px;background-image:url('skillicons.png');flex-shrink:0;display:none;vertical-align:bottom;margin-top:-4px;margin-bottom:-4px;}
+    #skillicon{width:20px;height:20px;background-image:url('skillicons.png');background-size:20px auto;flex-shrink:0;display:none;}
     #ratebox{flex:1;font-family:'Cinzel',serif;font-size:14px;font-weight:600;color:var(--gold-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,0.7);cursor:pointer;letter-spacing:0.02em;}
     #ratebox:hover{filter:brightness(1.2);}
     #xpgained{font-size:9px;color:var(--green);white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.5);font-weight:700;}
@@ -62,7 +62,7 @@
     .skillrow:hover{background:var(--bg-hover);border-color:var(--bdr-outer);}
     .skillrow.selected{background:var(--bg-active);border-left-color:var(--bdr-bright);box-shadow:inset 0 0 8px var(--gold-glow);}
     .skillrow-icon{width:20px;height:20px;background-image:url('skillicons.png');background-size:20px auto;background-repeat:no-repeat;flex-shrink:0;}
-    .skillrow-name{min-width:65px;font-size:10px;color:var(--text);text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .skillrow-name{min-width:65px;font-size:10px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .skillrow-rate{font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-left:auto;}
     /* Inline goal bar */
     .skillrow-goalwrap{width:36px;flex-shrink:0;display:flex;align-items:center;gap:2px;}
@@ -255,38 +255,41 @@
      ================================================================ */
 
   // ─── Skill definitions ───
-  var skillnames=["attack","defence","strength","constitution","ranged","prayer","magic","cooking","woodcutting","fletching","fishing","firemaking","crafting","smithing","mining","herblore","agility","thieving","slayer","farming","runecrafting","hunter","construction","summoning","dungeoneering","divination","invention","archaeology","necromancy"];
+  // Reader returns short codes; map to display names and sprite indices
+  var skillnames=["att","def","str","hpx","ran","pra","mag","coo","woo","fle","fis","fir","cra","smi","min","her","agi","thi","sla","far","run","hun","con","sum","dun","div","inv","arc","nec"];
+  var skilldisplay={att:"Attack",def:"Defence",str:"Strength",hpx:"Constitution",ran:"Ranged",pra:"Prayer",mag:"Magic",coo:"Cooking",woo:"Woodcutting",fle:"Fletching",fis:"Fishing",fir:"Firemaking",cra:"Crafting",smi:"Smithing",min:"Mining",her:"Herblore",agi:"Agility",thi:"Thieving",sla:"Slayer",far:"Farming",run:"Runecrafting",hun:"Hunter",con:"Construction",sum:"Summoning",dun:"Dungeoneering",div:"Divination",inv:"Invention",arc:"Archaeology",nec:"Necromancy",com:"Combat",tot:"Total"};
+  function skillName(id){return skilldisplay[id]||id;}
 
   var skillcolors={
-    attack:{l:"#c43434",f:"rgba(196,52,52,",g:"rgba(196,52,52,0.4)"},
-    defence:{l:"#6888c8",f:"rgba(104,136,200,",g:"rgba(104,136,200,0.4)"},
-    strength:{l:"#18b818",f:"rgba(24,184,24,",g:"rgba(24,184,24,0.4)"},
-    constitution:{l:"#c8c8c8",f:"rgba(200,200,200,",g:"rgba(200,200,200,0.3)"},
-    ranged:{l:"#68a840",f:"rgba(104,168,64,",g:"rgba(104,168,64,0.4)"},
-    prayer:{l:"#c8c8a0",f:"rgba(200,200,160,",g:"rgba(200,200,160,0.3)"},
-    magic:{l:"#6070c8",f:"rgba(96,112,200,",g:"rgba(96,112,200,0.4)"},
-    cooking:{l:"#a04898",f:"rgba(160,72,152,",g:"rgba(160,72,152,0.4)"},
-    woodcutting:{l:"#a08848",f:"rgba(160,136,72,",g:"rgba(160,136,72,0.4)"},
-    fletching:{l:"#18a0a0",f:"rgba(24,160,160,",g:"rgba(24,160,160,0.4)"},
-    fishing:{l:"#6898c8",f:"rgba(104,152,200,",g:"rgba(104,152,200,0.4)"},
-    firemaking:{l:"#c88828",f:"rgba(200,136,40,",g:"rgba(200,136,40,0.4)"},
-    crafting:{l:"#b0a078",f:"rgba(176,160,120,",g:"rgba(176,160,120,0.3)"},
-    smithing:{l:"#a0a0a0",f:"rgba(160,160,160,",g:"rgba(160,160,160,0.3)"},
-    mining:{l:"#70a8b8",f:"rgba(112,168,184,",g:"rgba(112,168,184,0.4)"},
-    herblore:{l:"#18b060",f:"rgba(24,176,96,",g:"rgba(24,176,96,0.4)"},
-    agility:{l:"#3860a0",f:"rgba(56,96,160,",g:"rgba(56,96,160,0.4)"},
-    thieving:{l:"#a048a0",f:"rgba(160,72,160,",g:"rgba(160,72,160,0.4)"},
-    slayer:{l:"#686868",f:"rgba(104,104,104,",g:"rgba(104,104,104,0.4)"},
-    farming:{l:"#68a830",f:"rgba(104,168,48,",g:"rgba(104,168,48,0.4)"},
-    runecrafting:{l:"#c8b050",f:"rgba(200,176,80,",g:"rgba(200,176,80,0.4)"},
-    hunter:{l:"#707040",f:"rgba(112,112,64,",g:"rgba(112,112,64,0.4)"},
-    construction:{l:"#a07848",f:"rgba(160,120,72,",g:"rgba(160,120,72,0.4)"},
-    summoning:{l:"#3878a0",f:"rgba(56,120,160,",g:"rgba(56,120,160,0.4)"},
-    dungeoneering:{l:"#a05828",f:"rgba(160,88,40,",g:"rgba(160,88,40,0.4)"},
-    divination:{l:"#a070c8",f:"rgba(160,112,200,",g:"rgba(160,112,200,0.4)"},
-    invention:{l:"#c8b830",f:"rgba(200,184,48,",g:"rgba(200,184,48,0.4)"},
-    archaeology:{l:"#c87848",f:"rgba(200,120,72,",g:"rgba(200,120,72,0.4)"},
-    necromancy:{l:"#8848a0",f:"rgba(136,72,160,",g:"rgba(136,72,160,0.4)"},
+    att:{l:"#c43434",f:"rgba(196,52,52,",g:"rgba(196,52,52,0.4)"},
+    def:{l:"#6888c8",f:"rgba(104,136,200,",g:"rgba(104,136,200,0.4)"},
+    str:{l:"#18b818",f:"rgba(24,184,24,",g:"rgba(24,184,24,0.4)"},
+    hpx:{l:"#c8c8c8",f:"rgba(200,200,200,",g:"rgba(200,200,200,0.3)"},
+    ran:{l:"#68a840",f:"rgba(104,168,64,",g:"rgba(104,168,64,0.4)"},
+    pra:{l:"#c8c8a0",f:"rgba(200,200,160,",g:"rgba(200,200,160,0.3)"},
+    mag:{l:"#6070c8",f:"rgba(96,112,200,",g:"rgba(96,112,200,0.4)"},
+    coo:{l:"#a04898",f:"rgba(160,72,152,",g:"rgba(160,72,152,0.4)"},
+    woo:{l:"#a08848",f:"rgba(160,136,72,",g:"rgba(160,136,72,0.4)"},
+    fle:{l:"#18a0a0",f:"rgba(24,160,160,",g:"rgba(24,160,160,0.4)"},
+    fis:{l:"#6898c8",f:"rgba(104,152,200,",g:"rgba(104,152,200,0.4)"},
+    fir:{l:"#c88828",f:"rgba(200,136,40,",g:"rgba(200,136,40,0.4)"},
+    cra:{l:"#b0a078",f:"rgba(176,160,120,",g:"rgba(176,160,120,0.3)"},
+    smi:{l:"#a0a0a0",f:"rgba(160,160,160,",g:"rgba(160,160,160,0.3)"},
+    min:{l:"#70a8b8",f:"rgba(112,168,184,",g:"rgba(112,168,184,0.4)"},
+    her:{l:"#18b060",f:"rgba(24,176,96,",g:"rgba(24,176,96,0.4)"},
+    agi:{l:"#3860a0",f:"rgba(56,96,160,",g:"rgba(56,96,160,0.4)"},
+    thi:{l:"#a048a0",f:"rgba(160,72,160,",g:"rgba(160,72,160,0.4)"},
+    sla:{l:"#686868",f:"rgba(104,104,104,",g:"rgba(104,104,104,0.4)"},
+    far:{l:"#68a830",f:"rgba(104,168,48,",g:"rgba(104,168,48,0.4)"},
+    run:{l:"#c8b050",f:"rgba(200,176,80,",g:"rgba(200,176,80,0.4)"},
+    hun:{l:"#707040",f:"rgba(112,112,64,",g:"rgba(112,112,64,0.4)"},
+    con:{l:"#a07848",f:"rgba(160,120,72,",g:"rgba(160,120,72,0.4)"},
+    sum:{l:"#3878a0",f:"rgba(56,120,160,",g:"rgba(56,120,160,0.4)"},
+    dun:{l:"#a05828",f:"rgba(160,88,40,",g:"rgba(160,88,40,0.4)"},
+    div:{l:"#a070c8",f:"rgba(160,112,200,",g:"rgba(160,112,200,0.4)"},
+    inv:{l:"#c8b830",f:"rgba(200,184,48,",g:"rgba(200,184,48,0.4)"},
+    arc:{l:"#c87848",f:"rgba(200,120,72,",g:"rgba(200,120,72,0.4)"},
+    nec:{l:"#8848a0",f:"rgba(136,72,160,",g:"rgba(136,72,160,0.4)"},
     com:{l:"#c8a84e",f:"rgba(200,168,78,",g:"rgba(200,168,78,0.4)"}
   };
   function skc(id){return skillcolors[id]||skillcolors.com;}
@@ -326,7 +329,7 @@
   function displaytime(ms){var t=Math.floor(ms/1000),s=t%60,m=Math.floor(t/60)%60,h=Math.floor(t/3600),p=function(n){return n<10?"0"+n:""+n;};if(h===0)return m+":"+p(s);return h+":"+p(m)+":"+p(s);}
   function etaStr(ms){if(!isFinite(ms)||ms<=0)return"--";var h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);if(h>99)return">99h";if(h>0)return h+"h "+m+"m";return m+"m";}
   function floorx(v,step){return Math.floor(v/step)*step;}
-  function iconoffset(id){var i=skillnames.indexOf(id);if(id==="com")i=31;return i;}
+  function iconoffset(id){var i=skillnames.indexOf(id);if(id==="com")i=31;if(id==="tot")i=-1;return i;}
 
   // ─── Notifications ───
   function showNotif(msg,type){
@@ -417,7 +420,7 @@
     if(!notifLevelup)return;
     var lv=levelForXp(xp);
     if(prevLevels[skill]!==undefined&&lv>prevLevels[skill]){
-      showNotif(skill.charAt(0).toUpperCase()+skill.slice(1)+" level "+lv+"!","gold");
+      showNotif(skillName(skill)+" level "+lv+"!","gold");
     }
     prevLevels[skill]=lv;
   }
@@ -428,7 +431,7 @@
     var milestone=Math.floor(total/1000000);
     var prev=prevXpMilestones[skill]||0;
     if(milestone>prev){
-      showNotif(skill.charAt(0).toUpperCase()+skill.slice(1)+": "+milestone+"M xp gained!","green");
+      showNotif(skillName(skill)+": "+milestone+"M xp gained!","green");
       prevXpMilestones[skill]=milestone;
     }
   }
@@ -483,7 +486,7 @@
       var sel=a===skillid?" selected":"",off=iconoffset(a),c=skc(a);
       html+="<div class='skillrow"+sel+"' onclick='setcounter(\""+a+"\")' oncontextmenu='openGoalMenu(event,\""+a+"\")'>";
       html+="<div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div>";
-      html+="<div class='skillrow-name' style='color:"+c.l+"'>"+a+"</div>";
+      html+="<div class='skillrow-name' style='color:"+c.l+"'>"+skillName(a)+"</div>";
       html+="<div class='skillrow-rate' style='color:"+c.l+"'>"+shortxp(rate.xprate)+"/hr</div>";
       // Inline goal bar
       if(goals[a]){
@@ -525,7 +528,7 @@
       {label:"Level 120",xp:xpForLevel(120)},
       {label:"200M XP",xp:200000000}
     ];
-    var html="<div class='goalmenu-opt' style='color:var(--gold-dim);font-size:9px;cursor:default;padding:3px 10px;'>"+skill.charAt(0).toUpperCase()+skill.slice(1)+" Goal</div>";
+    var html="<div class='goalmenu-opt' style='color:var(--gold-dim);font-size:9px;cursor:default;padding:3px 10px;'>"+skillName(skill)+" Goal</div>";
     html+="<div class='goalmenu-divider'></div>";
     for(var i=0;i<targets.length;i++){
       var done=currentXp>=targets[i].xp;
@@ -589,7 +592,7 @@
         html+="<div class='histrow-stat'>XP: <span>"+shortxp(totalXp)+"</span></div>";
         var topSkill="";var topRate=0;
         for(var sk in s.skills){if(s.skills[sk].rate>topRate){topRate=s.skills[sk].rate;topSkill=sk;}}
-        if(topSkill)html+="<div class='histrow-stat'>Top: <span>"+topSkill+" "+spacednr(topRate)+"/hr</span></div>";
+        if(topSkill)html+="<div class='histrow-stat'>Top: <span>"+skillName(topSkill)+" "+spacednr(topRate)+"/hr</span></div>";
         html+="</div></div>";
       }
     }
@@ -666,7 +669,7 @@
   }
 
   // ─── UI ───
-  function setSkillIcon(id){var el=elid("skillicon"),off=typeof id==="string"?iconoffset(id):id;if(off===-1||off===undefined){el.style.display="none";}else{el.style.backgroundPosition="0px "+(-28*off)+"px";el.style.display="block";}}
+  function setSkillIcon(id){var el=elid("skillicon"),off=typeof id==="string"?iconoffset(id):id;if(off===-1||off===undefined){el.style.display="none";}else{el.style.backgroundPosition="0px "+(-20*off)+"px";el.style.display="block";}}
   function setStatus(s){elid("statusdot").className=s;}
   function updateXpGained(){var total=0;for(var k in totalSessionXp)total+=totalSessionXp[k];if(total>0)elid("xpgained").textContent="+"+shortxp(total);}
 
@@ -676,7 +679,7 @@
     if(dropdownOpen){
       dd.classList.add("open");var html="";
       for(var a in hist){if(!hist[a].visible||a===skillid)continue;var off=iconoffset(a),rate=calcmeter(hist[a].data,false,currenttime),c=skc(a);
-        html+="<div class='skillrow' onclick='setcounter(\""+a+"\");toggleSkillDropdown();'><div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div><div class='skillrow-name'>"+a+"</div><div class='skillrow-rate' style='color:"+c.l+"'>"+spacednr(rate.xprate)+"/hr</div></div>";}
+        html+="<div class='skillrow' onclick='setcounter(\""+a+"\");toggleSkillDropdown();'><div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div><div class='skillrow-name'>"+skillName(a)+"</div><div class='skillrow-rate' style='color:"+c.l+"'>"+spacednr(rate.xprate)+"/hr</div></div>";}
       if(!html)html="<div class='empty-state'>No other skills</div>";dd.innerHTML=html;
     }else{dd.classList.remove("open");}
   }
