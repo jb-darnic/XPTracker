@@ -255,42 +255,49 @@
      ================================================================ */
 
   // ─── Skill definitions ───
-  // Reader returns short codes; map to display names and sprite indices
-  var skillnames=["att","def","str","hpx","ran","pra","mag","coo","woo","fle","fis","fir","cra","smi","min","her","agi","thi","sla","far","run","hun","con","sum","dun","div","inv","arc","nec"];
-  var skilldisplay={att:"Attack",def:"Defence",str:"Strength",hpx:"Constitution",ran:"Ranged",pra:"Prayer",mag:"Magic",coo:"Cooking",woo:"Woodcutting",fle:"Fletching",fis:"Fishing",fir:"Firemaking",cra:"Crafting",smi:"Smithing",min:"Mining",her:"Herblore",agi:"Agility",thi:"Thieving",sla:"Slayer",far:"Farming",run:"Runecrafting",hun:"Hunter",con:"Construction",sum:"Summoning",dun:"Dungeoneering",div:"Divination",inv:"Invention",arc:"Archaeology",nec:"Necromancy",com:"Combat",tot:"Total"};
-  function skillName(id){return skilldisplay[id]||id;}
+  // skillnames and fullskillnames are globals from runeappslib.js
+  // skillnames = ["tot","att","str","ran","mag","def","hpx","pra","sum","dun","agi","thi","sla","hun","smi","cra","fle","her","run","coo","con","fir","woo","far","fis","min","div","inv","arc","nec"]
+  // fullskillnames = ["Total","Attack","Strength",...]
+  // com (combat) is special — sprite index 31
+  function skillName(id){
+    var i=skillnames.indexOf(id);
+    if(i>=0&&i<fullskillnames.length)return fullskillnames[i];
+    if(id==="com")return"Combat";
+    return id;
+  }
 
+  // Muted skill colors — desaturated to blend with the NIS UI
   var skillcolors={
-    att:{l:"#c43434",f:"rgba(196,52,52,",g:"rgba(196,52,52,0.4)"},
-    def:{l:"#6888c8",f:"rgba(104,136,200,",g:"rgba(104,136,200,0.4)"},
-    str:{l:"#18b818",f:"rgba(24,184,24,",g:"rgba(24,184,24,0.4)"},
-    hpx:{l:"#c8c8c8",f:"rgba(200,200,200,",g:"rgba(200,200,200,0.3)"},
-    ran:{l:"#68a840",f:"rgba(104,168,64,",g:"rgba(104,168,64,0.4)"},
-    pra:{l:"#c8c8a0",f:"rgba(200,200,160,",g:"rgba(200,200,160,0.3)"},
-    mag:{l:"#6070c8",f:"rgba(96,112,200,",g:"rgba(96,112,200,0.4)"},
-    coo:{l:"#a04898",f:"rgba(160,72,152,",g:"rgba(160,72,152,0.4)"},
-    woo:{l:"#a08848",f:"rgba(160,136,72,",g:"rgba(160,136,72,0.4)"},
-    fle:{l:"#18a0a0",f:"rgba(24,160,160,",g:"rgba(24,160,160,0.4)"},
-    fis:{l:"#6898c8",f:"rgba(104,152,200,",g:"rgba(104,152,200,0.4)"},
-    fir:{l:"#c88828",f:"rgba(200,136,40,",g:"rgba(200,136,40,0.4)"},
-    cra:{l:"#b0a078",f:"rgba(176,160,120,",g:"rgba(176,160,120,0.3)"},
-    smi:{l:"#a0a0a0",f:"rgba(160,160,160,",g:"rgba(160,160,160,0.3)"},
-    min:{l:"#70a8b8",f:"rgba(112,168,184,",g:"rgba(112,168,184,0.4)"},
-    her:{l:"#18b060",f:"rgba(24,176,96,",g:"rgba(24,176,96,0.4)"},
-    agi:{l:"#3860a0",f:"rgba(56,96,160,",g:"rgba(56,96,160,0.4)"},
-    thi:{l:"#a048a0",f:"rgba(160,72,160,",g:"rgba(160,72,160,0.4)"},
-    sla:{l:"#686868",f:"rgba(104,104,104,",g:"rgba(104,104,104,0.4)"},
-    far:{l:"#68a830",f:"rgba(104,168,48,",g:"rgba(104,168,48,0.4)"},
-    run:{l:"#c8b050",f:"rgba(200,176,80,",g:"rgba(200,176,80,0.4)"},
-    hun:{l:"#707040",f:"rgba(112,112,64,",g:"rgba(112,112,64,0.4)"},
-    con:{l:"#a07848",f:"rgba(160,120,72,",g:"rgba(160,120,72,0.4)"},
-    sum:{l:"#3878a0",f:"rgba(56,120,160,",g:"rgba(56,120,160,0.4)"},
-    dun:{l:"#a05828",f:"rgba(160,88,40,",g:"rgba(160,88,40,0.4)"},
-    div:{l:"#a070c8",f:"rgba(160,112,200,",g:"rgba(160,112,200,0.4)"},
-    inv:{l:"#c8b830",f:"rgba(200,184,48,",g:"rgba(200,184,48,0.4)"},
-    arc:{l:"#c87848",f:"rgba(200,120,72,",g:"rgba(200,120,72,0.4)"},
-    nec:{l:"#8848a0",f:"rgba(136,72,160,",g:"rgba(136,72,160,0.4)"},
-    com:{l:"#c8a84e",f:"rgba(200,168,78,",g:"rgba(200,168,78,0.4)"}
+    att:{l:"#a04040",f:"rgba(160,64,64,",g:"rgba(160,64,64,0.3)"},
+    def:{l:"#6078a8",f:"rgba(96,120,168,",g:"rgba(96,120,168,0.3)"},
+    str:{l:"#4a8a4a",f:"rgba(74,138,74,",g:"rgba(74,138,74,0.3)"},
+    hpx:{l:"#a0a098",f:"rgba(160,160,152,",g:"rgba(160,160,152,0.25)"},
+    ran:{l:"#5a8840",f:"rgba(90,136,64,",g:"rgba(90,136,64,0.3)"},
+    pra:{l:"#a8a880",f:"rgba(168,168,128,",g:"rgba(168,168,128,0.25)"},
+    mag:{l:"#5868a8",f:"rgba(88,104,168,",g:"rgba(88,104,168,0.3)"},
+    coo:{l:"#884878",f:"rgba(136,72,120,",g:"rgba(136,72,120,0.3)"},
+    woo:{l:"#8a7848",f:"rgba(138,120,72,",g:"rgba(138,120,72,0.3)"},
+    fle:{l:"#308888",f:"rgba(48,136,136,",g:"rgba(48,136,136,0.3)"},
+    fis:{l:"#5880a0",f:"rgba(88,128,160,",g:"rgba(88,128,160,0.3)"},
+    fir:{l:"#a87830",f:"rgba(168,120,48,",g:"rgba(168,120,48,0.3)"},
+    cra:{l:"#988868",f:"rgba(152,136,104,",g:"rgba(152,136,104,0.25)"},
+    smi:{l:"#888888",f:"rgba(136,136,136,",g:"rgba(136,136,136,0.25)"},
+    min:{l:"#608898",f:"rgba(96,136,152,",g:"rgba(96,136,152,0.3)"},
+    her:{l:"#309060",f:"rgba(48,144,96,",g:"rgba(48,144,96,0.3)"},
+    agi:{l:"#385890",f:"rgba(56,88,144,",g:"rgba(56,88,144,0.3)"},
+    thi:{l:"#884888",f:"rgba(136,72,136,",g:"rgba(136,72,136,0.3)"},
+    sla:{l:"#606060",f:"rgba(96,96,96,",g:"rgba(96,96,96,0.3)"},
+    far:{l:"#588830",f:"rgba(88,136,48,",g:"rgba(88,136,48,0.3)"},
+    run:{l:"#a89848",f:"rgba(168,152,72,",g:"rgba(168,152,72,0.3)"},
+    hun:{l:"#686840",f:"rgba(104,104,64,",g:"rgba(104,104,64,0.3)"},
+    con:{l:"#886848",f:"rgba(136,104,72,",g:"rgba(136,104,72,0.3)"},
+    sum:{l:"#387090",f:"rgba(56,112,144,",g:"rgba(56,112,144,0.3)"},
+    dun:{l:"#885828",f:"rgba(136,88,40,",g:"rgba(136,88,40,0.3)"},
+    div:{l:"#886898",f:"rgba(136,104,152,",g:"rgba(136,104,152,0.3)"},
+    inv:{l:"#a8a030",f:"rgba(168,160,48,",g:"rgba(168,160,48,0.3)"},
+    arc:{l:"#a07048",f:"rgba(160,112,72,",g:"rgba(160,112,72,0.3)"},
+    nec:{l:"#704888",f:"rgba(112,72,136,",g:"rgba(112,72,136,0.3)"},
+    com:{l:"#a89050",f:"rgba(168,144,80,",g:"rgba(168,144,80,0.3)"}
   };
   function skc(id){return skillcolors[id]||skillcolors.com;}
 
