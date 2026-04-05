@@ -58,19 +58,19 @@
 
     /* ── Skill rows ── */
     #skillslist{padding:2px 0;}
-    .skillrow{display:flex;align-items:center;padding:3px 6px;background:var(--bg-inner);border:1px solid transparent;border-left:2px solid transparent;cursor:pointer;gap:4px;transition:background 0.1s,border-color 0.15s;}
+    .skillrow{display:flex;align-items:center;padding:3px 6px 3px 4px;background:var(--bg-inner);border:1px solid transparent;border-left:3px solid transparent;cursor:pointer;gap:5px;transition:background 0.15s,border-color 0.15s;}
     .skillrow:hover{background:var(--bg-hover);border-color:var(--bdr-outer);}
-    .skillrow.selected{background:var(--bg-active);border-left-color:var(--bdr-bright);box-shadow:inset 0 0 8px var(--gold-glow);}
+    .skillrow.selected{background:var(--bg-active);box-shadow:inset 0 0 10px var(--gold-glow);}
     .skillrow-icon{width:20px;height:20px;background-image:url('skillicons.png');background-size:20px auto;background-repeat:no-repeat;flex-shrink:0;}
-    .skillrow-name{min-width:65px;font-size:10px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .skillrow-rate{font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-left:auto;}
+    .skillrow-name{min-width:60px;font-size:11px;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0.01em;}
+    .skillrow-rate{font-size:11px;font-weight:700;color:var(--gold);white-space:nowrap;flex-shrink:0;margin-left:auto;}
     /* Inline goal bar */
     .skillrow-goalwrap{width:36px;flex-shrink:0;display:flex;align-items:center;gap:2px;}
     .skillrow-goalbar{flex:1;height:3px;background:var(--bg-deep);border:1px solid var(--bdr-outer);overflow:hidden;border-radius:1px;}
     .skillrow-goalfill{height:100%;transition:width 0.5s;}
     .skillrow-goalpct{font-size:7px;color:var(--text-dim);}
     /* Goal ETA */
-    .skillrow-eta{font-size:7px;color:var(--gold-dim);white-space:nowrap;flex-shrink:0;}
+    .skillrow-eta{font-size:8px;color:var(--gold-dim);white-space:nowrap;flex-shrink:0;}
 
     .empty-state{padding:12px 10px;font-size:11px;color:var(--text-faint);text-align:center;font-style:italic;}
 
@@ -491,10 +491,10 @@
       if(!hist[a].visible)continue;
       var rate=calcmeter(hist[a].data,false,currenttime);
       var sel=a===skillid?" selected":"",off=iconoffset(a),c=skc(a);
-      html+="<div class='skillrow"+sel+"' onclick='setcounter(\""+a+"\")' oncontextmenu='openGoalMenu(event,\""+a+"\")'>";
+      html+="<div class='skillrow"+sel+"' style='border-left-color:"+c.l+"' onclick='setcounter(\""+a+"\")' oncontextmenu='openGoalMenu(event,\""+a+"\")'>";
       html+="<div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div>";
-      html+="<div class='skillrow-name' style='color:"+c.l+"'>"+skillName(a)+"</div>";
-      html+="<div class='skillrow-rate' style='color:"+c.l+"'>"+shortxp(rate.xprate)+"/hr</div>";
+      html+="<div class='skillrow-name'>"+skillName(a)+"</div>";
+      html+="<div class='skillrow-rate'>"+shortxp(rate.xprate)+"/hr</div>";
       // Inline goal bar
       if(goals[a]){
         var currentXp=0;
@@ -686,7 +686,7 @@
     if(dropdownOpen){
       dd.classList.add("open");var html="";
       for(var a in hist){if(!hist[a].visible||a===skillid)continue;var off=iconoffset(a),rate=calcmeter(hist[a].data,false,currenttime),c=skc(a);
-        html+="<div class='skillrow' onclick='setcounter(\""+a+"\");toggleSkillDropdown();'><div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div><div class='skillrow-name'>"+skillName(a)+"</div><div class='skillrow-rate' style='color:"+c.l+"'>"+spacednr(rate.xprate)+"/hr</div></div>";}
+        html+="<div class='skillrow' style='border-left-color:"+c.l+"' onclick='setcounter(\""+a+"\");toggleSkillDropdown();'><div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div><div class='skillrow-name'>"+skillName(a)+"</div><div class='skillrow-rate'>"+spacednr(rate.xprate)+"/hr</div></div>";}
       if(!html)html="<div class='empty-state'>No other skills</div>";dd.innerHTML=html;
     }else{dd.classList.remove("open");}
   }
