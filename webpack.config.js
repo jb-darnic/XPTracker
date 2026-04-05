@@ -48,8 +48,8 @@ module.exports = {
       { test: /\.html$/, type: "asset/resource", generator: { filename: "[name][ext]" } },
       { test: /\.json$/, type: "asset/resource", generator: { filename: "[name][ext]" } },
       { test: /\.css$/, type: "asset/resource", generator: { filename: "[name][ext]" } },
-      { test: /\.png$/, type: "asset/resource", generator: { filename: "[name][ext]" } },
       { test: /\.data\.png$/, loader: "alt1/imagedata-loader" },
+      { test: /\.png$/, exclude: /\.data\.png$/, type: "asset/resource", generator: { filename: "[name][ext]" } },
     ],
   },
   devServer: {
