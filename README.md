@@ -1,4 +1,4 @@
-# XP Meter Improved
+# XPTracker
 
 A modern, open-source replacement for Alt1 Toolkit's built-in XPMeter. Built with TypeScript, event-driven architecture, and a clean RS3-native dark HUD aesthetic.
 
@@ -49,10 +49,12 @@ npm run build
 After building, host the `dist/` folder on GitHub Pages (or any static host), then install in Alt1:
 
 ```
-alt1://addapp/https://<your-username>.github.io/xpmeter-improved/dist/appconfig.json
+alt1://addapp/https://jb-darnic.github.io/XPTracker/dist/appconfig.json
 ```
 
 Or open the URL in Alt1's built-in browser and click "Add App".
+
+> **Note:** You'll need to enable GitHub Pages on this repo (Settings → Pages → deploy from `main` branch) for the install link to work.
 
 ## Requirements
 
