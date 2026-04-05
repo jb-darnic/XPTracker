@@ -19,7 +19,7 @@
       --green:#5b9b3e;--green-glow:rgba(91,155,62,0.5);--amber:#c89b2a;--amber-glow:rgba(200,155,42,0.5);--red:#9b3e3e;--red-glow:rgba(155,62,62,0.5);
     }
     *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:'Quattrocento Sans','Segoe UI',sans-serif;color:var(--text);background:var(--bg-deep);overflow:hidden;user-select:none;-webkit-user-select:none;font-size:clamp(12px,2.5vw,16px);}
+    body{font-family:'Quattrocento Sans','Segoe UI',sans-serif;color:var(--text);background:var(--bg-deep);overflow:hidden;user-select:none;-webkit-user-select:none;font-size:clamp(13px,3.2vw,18px);}
     ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--bg-deep);border-radius:3px;}::-webkit-scrollbar-thumb{background:var(--bdr-inner);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--bdr-gold);}
 
     /* ── Frame with RS3 NIS beveled border ── */
@@ -29,7 +29,7 @@
     #frame::after{content:'';position:absolute;top:2px;left:2px;right:50%;bottom:50%;border-top:1px solid rgba(122,104,64,0.25);border-left:1px solid rgba(122,104,64,0.15);pointer-events:none;z-index:50;}
 
     /* ── Header ── */
-    #topbar{display:flex;align-items:center;padding:4px 8px;background:linear-gradient(180deg,rgba(75,62,38,0.3) 0%,rgba(34,28,20,0.8) 100%);border-bottom:1px solid var(--bdr-outer);gap:6px;min-height:30px;cursor:default;position:relative;flex-shrink:0;}
+    #topbar{display:flex;align-items:center;padding:6px 8px;background:linear-gradient(180deg,rgba(75,62,38,0.3) 0%,rgba(34,28,20,0.8) 100%);border-bottom:1px solid var(--bdr-outer);gap:6px;min-height:36px;cursor:default;position:relative;flex-shrink:0;}
     #topbar::before{content:'';position:absolute;top:0;left:8px;right:8px;height:1px;background:linear-gradient(90deg,transparent,var(--bdr-gold),transparent);}
     #topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(42,34,24,0.8),transparent);}
 
@@ -40,11 +40,11 @@
     #statusdot.error{background:var(--red);box-shadow:0 0 6px var(--red-glow);}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
 
-    #skillicon{width:20px;height:20px;background-image:url('skillicons.png');background-size:20px auto;flex-shrink:0;display:none;}
-    #ratebox{flex:1;font-family:'Cinzel',serif;font-size:clamp(14px,3.5vw,20px);font-weight:600;color:var(--gold-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,0.7);cursor:pointer;letter-spacing:0.02em;}
+    #skillicon{width:24px;height:24px;background-image:url('skillicons.png');background-size:24px auto;flex-shrink:0;display:none;}
+    #ratebox{flex:1;font-family:'Cinzel',serif;font-size:clamp(16px,4.5vw,26px);font-weight:600;color:var(--gold-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,0.7);cursor:pointer;letter-spacing:0.02em;}
     #ratebox:hover{filter:brightness(1.2);}
-    #xpgained{font-size:clamp(9px,2vw,13px);color:var(--green);white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.5);font-weight:700;}
-    #sessiontime{font-size:clamp(9px,2vw,13px);color:var(--text-dim);white-space:nowrap;cursor:pointer;padding:1px 4px;background:var(--bg-deep);border:1px solid var(--bdr-outer);border-radius:2px;transition:color 0.15s,border-color 0.15s;}
+    #xpgained{font-size:clamp(11px,2.5vw,15px);color:var(--green);white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.5);font-weight:700;}
+    #sessiontime{font-size:clamp(11px,2.5vw,15px);color:var(--text-dim);white-space:nowrap;cursor:pointer;padding:2px 6px;background:var(--bg-deep);border:1px solid var(--bdr-outer);border-radius:2px;transition:color 0.15s,border-color 0.15s;}
     #sessiontime:hover{color:var(--text-bright);border-color:var(--bdr-gold);}
 
     /* ── Dashboard (replaces tabs+panels) ── */
@@ -53,24 +53,24 @@
     /* ── Compact Graph ── */
     #graphwrap{position:relative;height:80px;background:var(--bg-inner);border-bottom:1px solid var(--bdr-outer);flex-shrink:0;}
     #cnv{width:100%;height:100%;display:block;}
-    #graphrate{position:absolute;top:3px;right:5px;font-family:'Cinzel',serif;font-size:clamp(10px,2.2vw,14px);font-weight:600;color:var(--gold-bright);text-shadow:0 1px 3px rgba(0,0,0,0.8);pointer-events:none;z-index:2;}
-    #graphtimes{position:absolute;bottom:1px;left:0;right:0;display:flex;justify-content:space-between;padding:0 4px;font-size:clamp(8px,1.8vw,11px);color:var(--text-faint);pointer-events:none;z-index:2;}
+    #graphrate{position:absolute;top:4px;right:6px;font-family:'Cinzel',serif;font-size:clamp(12px,2.8vw,16px);font-weight:600;color:var(--gold-bright);text-shadow:0 1px 3px rgba(0,0,0,0.8);pointer-events:none;z-index:2;}
+    #graphtimes{position:absolute;bottom:2px;left:0;right:0;display:flex;justify-content:space-between;padding:0 6px;font-size:clamp(9px,2.2vw,13px);color:var(--text-faint);pointer-events:none;z-index:2;}
 
     /* ── Skill rows ── */
     #skillslist{padding:2px 0;}
-    .skillrow{display:flex;align-items:center;padding:3px 6px 3px 4px;background:var(--bg-inner);border:1px solid transparent;border-left:3px solid transparent;cursor:pointer;gap:5px;transition:background 0.15s,border-color 0.15s;}
+    .skillrow{display:flex;align-items:center;padding:5px 8px 5px 5px;background:var(--bg-inner);border:1px solid transparent;border-left:3px solid transparent;cursor:pointer;gap:6px;transition:background 0.15s,border-color 0.15s;}
     .skillrow:hover{background:var(--bg-hover);border-color:var(--bdr-outer);}
     .skillrow.selected{background:var(--bg-active);box-shadow:inset 0 0 10px var(--gold-glow);}
-    .skillrow-icon{width:20px;height:20px;background-image:url('skillicons.png');background-size:20px auto;background-repeat:no-repeat;flex-shrink:0;}
-    .skillrow-name{min-width:60px;font-size:clamp(11px,2.4vw,15px);color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0.01em;}
-    .skillrow-rate{font-size:clamp(11px,2.4vw,15px);font-weight:700;color:var(--gold);white-space:nowrap;flex-shrink:0;margin-left:auto;}
+    .skillrow-icon{width:22px;height:22px;background-image:url('skillicons.png');background-size:22px auto;background-repeat:no-repeat;flex-shrink:0;}
+    .skillrow-name{min-width:60px;font-size:clamp(13px,3vw,17px);color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0.01em;}
+    .skillrow-rate{font-size:clamp(13px,3vw,17px);font-weight:700;color:var(--gold);white-space:nowrap;flex-shrink:0;margin-left:auto;}
     /* Inline goal bar */
     .skillrow-goalwrap{width:36px;flex-shrink:0;display:flex;align-items:center;gap:2px;}
     .skillrow-goalbar{flex:1;height:3px;background:var(--bg-deep);border:1px solid var(--bdr-outer);overflow:hidden;border-radius:1px;}
     .skillrow-goalfill{height:100%;transition:width 0.5s;}
-    .skillrow-goalpct{font-size:clamp(8px,1.6vw,11px);color:var(--text-dim);}
+    .skillrow-goalpct{font-size:clamp(10px,2.2vw,13px);color:var(--text-dim);}
     /* Goal ETA */
-    .skillrow-eta{font-size:clamp(8px,1.8vw,11px);color:var(--gold-dim);white-space:nowrap;flex-shrink:0;}
+    .skillrow-eta{font-size:clamp(10px,2.2vw,13px);color:var(--gold-dim);white-space:nowrap;flex-shrink:0;}
 
     .empty-state{padding:12px 10px;font-size:11px;color:var(--text-faint);text-align:center;font-style:italic;}
 
@@ -460,7 +460,7 @@
       var rate=calcmeter(hist[a].data,false,currenttime);
       var sel=a===skillid?" selected":"",off=iconoffset(a),c=skc(a);
       html+="<div class='skillrow"+sel+"' style='border-left-color:"+c.l+"' onclick='setcounter(\""+a+"\")' oncontextmenu='openGoalMenu(event,\""+a+"\")'>";
-      html+="<div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div>";
+      html+="<div class='skillrow-icon' style='background-position:0px "+(-22*off)+"px'></div>";
       html+="<div class='skillrow-name'>"+skillName(a)+"</div>";
       html+="<div class='skillrow-rate'>"+shortxp(rate.xprate)+"/hr</div>";
       // Inline goal bar
@@ -644,7 +644,7 @@
   }
 
   // ─── UI ───
-  function setSkillIcon(id){var el=elid("skillicon"),off=typeof id==="string"?iconoffset(id):id;if(off===-1||off===undefined){el.style.display="none";}else{el.style.backgroundPosition="0px "+(-20*off)+"px";el.style.display="block";}}
+  function setSkillIcon(id){var el=elid("skillicon"),off=typeof id==="string"?iconoffset(id):id;if(off===-1||off===undefined){el.style.display="none";}else{el.style.backgroundPosition="0px "+(-24*off)+"px";el.style.display="block";}}
   function setStatus(s){elid("statusdot").className=s;}
   function updateXpGained(){var total=0;for(var k in totalSessionXp)total+=totalSessionXp[k];if(total>0)elid("xpgained").textContent="+"+shortxp(total);}
 
@@ -654,7 +654,7 @@
     if(dropdownOpen){
       dd.classList.add("open");var html="";
       for(var a in hist){if(!hist[a].visible||a===skillid)continue;var off=iconoffset(a),rate=calcmeter(hist[a].data,false,currenttime),c=skc(a);
-        html+="<div class='skillrow' style='border-left-color:"+c.l+"' onclick='setcounter(\""+a+"\");toggleSkillDropdown();'><div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div><div class='skillrow-name'>"+skillName(a)+"</div><div class='skillrow-rate'>"+spacednr(rate.xprate)+"/hr</div></div>";}
+        html+="<div class='skillrow' style='border-left-color:"+c.l+"' onclick='setcounter(\""+a+"\");toggleSkillDropdown();'><div class='skillrow-icon' style='background-position:0px "+(-22*off)+"px'></div><div class='skillrow-name'>"+skillName(a)+"</div><div class='skillrow-rate'>"+spacednr(rate.xprate)+"/hr</div></div>";}
       if(!html)html="<div class='empty-state'>No other skills</div>";dd.innerHTML=html;
     }else{dd.classList.remove("open");}
   }
