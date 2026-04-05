@@ -37,6 +37,7 @@
     #statusdot.searching{background:var(--amber);box-shadow:0 0 6px var(--amber-glow);animation:pulse 1.5s ease-in-out infinite;}
     #statusdot.active{background:var(--green);box-shadow:0 0 6px var(--green-glow);}
     #statusdot.afk{background:var(--amber);box-shadow:0 0 6px var(--amber-glow);animation:pulse 2s ease-in-out infinite;}
+    #statusdot.paused{background:var(--amber);box-shadow:0 0 6px var(--amber-glow);animation:pulse 1s ease-in-out infinite;}
     #statusdot.error{background:var(--red);box-shadow:0 0 6px var(--red-glow);}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
 
@@ -211,7 +212,13 @@
           <div class="setting-group">
             <div class="setting-label">AFK Alert</div>
             <div class="setting-row"><label><input type="checkbox" id="afkToggle" onchange="toggleAfkAlert()"> Enable alert</label></div>
+            <div class="setting-row"><label><input type="checkbox" id="autoPauseToggle" onchange="toggleAutoPause()"> Auto-pause timer when AFK</label></div>
             <div class="setting-row"><span>After:</span><input type="range" id="afkSlider" min="20" max="300" step="10" value="120" oninput="setAfkTime(this.value)"><span id="afkLabel" style="min-width:38px;text-align:right;color:var(--gold)">120 s</span></div>
+          </div>
+          <div class="setting-group">
+            <div class="setting-label">XP Detection</div>
+            <div class="setting-row"><span>Max drop:</span><input type="range" id="dropThreshSlider" min="100" max="5000" step="100" value="1000" oninput="setDropThreshold(this.value)"><span id="dropThreshLabel" style="min-width:48px;text-align:right;color:var(--gold)">1,000K</span></div>
+            <div class="setting-row" style="font-size:9px;color:var(--text-faint);">XP jumps above this are treated as counter resets, not real gains.</div>
           </div>
           <div class="setting-group">
             <div class="setting-label">Data</div>
@@ -245,15 +252,13 @@
   "use strict";
 
   /* ================================================================
-     XP METER IMPROVED v3 – Dashboard layout, RS3 NIS-styled
+     XP METER IMPROVED v3.1 – Pass 1: Data Accuracy Fixes
+     - #12: Configurable XP drop threshold (default 1M)
+     - #9: Auto-pause on AFK (freezes rate denominator)
      Built on the original working xpmeter. Pure vanilla JS.
      ================================================================ */
 
   // ─── Skill definitions ───
-  // skillnames and fullskillnames are globals from runeappslib.js
-  // skillnames = ["tot","att","str","ran","mag","def","hpx","pra","sum","dun","agi","thi","sla","hun","smi","cra","fle","her","run","coo","con","fir","woo","far","fis","min","div","inv","arc","nec"]
-  // fullskillnames = ["Total","Attack","Strength",...]
-  // com (combat) is special — sprite index 31
   function skillName(id){
     var i=skillnames.indexOf(id);
     if(i>=0&&i<fullskillnames.length)return fullskillnames[i];
@@ -261,7 +266,7 @@
     return id;
   }
 
-  // Muted skill colors — desaturated to blend with the NIS UI
+  // Muted skill colors
   var skillcolors={
     att:{l:"#a04040",f:"rgba(160,64,64,",g:"rgba(160,64,64,0.3)"},
     def:{l:"#6078a8",f:"rgba(96,120,168,",g:"rgba(96,120,168,0.3)"},
@@ -302,7 +307,13 @@
   function levelForXp(xp){for(var i=1;i<xpTable.length;i++){if(xpTable[i]>xp)return i-1;}return xpTable.length-1;}
 
   // ─── State ───
-  var hist={},reader=new XpcounterReader.XpcounterReader();
+  var hist={},reader=null;
+  // Guard: XpcounterReader comes from xpcounter.bundle.js which must be loaded first
+  if(typeof XpcounterReader!=="undefined"){
+    reader=new XpcounterReader.XpcounterReader();
+  }else{
+    console.error("XpcounterReader not found. Make sure xpcounter.bundle.js and nis/*.js are in the same directory.");
+  }
   var measuretime=0,graphtime=0,currenttime=0,trackedxp=0,measurestart=Date.now(),lastdraw=0,lastchange=0,findfails=0;
   var totalSessionXp={},lastgraphstart=0,lastgraphend=0,lastgraphskill="";
   var overlayOpen=false;
@@ -316,6 +327,17 @@
   var skillid="";
   var goals=JSON.parse(localStorage.xpmeter_goals||"{}");
   var sessionHistory=JSON.parse(localStorage.xpmeter_history||"[]");
+
+  // ─── NEW: Pass 1 settings ───
+  // #12: Configurable XP drop threshold (stored in K, default 1000K = 1M)
+  var xpDropThresholdK=+localStorage.xpmeter_dropthresh||1000;
+  var xpDropThreshold=xpDropThresholdK*1000;
+
+  // #9: Auto-pause on AFK
+  var autoPauseEnabled=localStorage.xpmeter_autopause==="true";
+  var afkPauseStart=0;       // timestamp when current AFK pause began (0 = not paused)
+  var totalPausedTime=0;     // accumulated ms of paused time this session
+  var isAfk=false;           // whether we're currently in AFK state
 
   var deletetime=4*60*60*1000,cnv=null,ctx=null;
   var tooltiptimeout=null,tooltipout=false,dropdownOpen=false;
@@ -351,6 +373,10 @@
     elid("afkToggle").checked=afkAlertEnabled;
     elid("afkSlider").value=afkAlertTime/1000;
     elid("afkLabel").textContent=(afkAlertTime/1000)+" s";
+    // Pass 1 UI init
+    elid("autoPauseToggle").checked=autoPauseEnabled;
+    elid("dropThreshSlider").value=xpDropThresholdK;
+    elid("dropThreshLabel").textContent=spacednr(xpDropThresholdK)+"K";
     drawHistoryPanel();
     resize();
     startFindCounter();
@@ -366,6 +392,7 @@
   }
 
   function startFindCounter(){
+    if(!reader){setStatus("error");elid("ratebox").textContent="Reader unavailable";return;}
     setStatus("searching");elid("ratebox").textContent="Searching\u2026";
     if(!reader.searching)reader.pos=null;
     reader.findAsync(function(){
@@ -380,6 +407,7 @@
   }
 
   function tick(){
+    if(!reader)return;
     if(!reader.pos){if(reader.searching){setStatus("searching");elid("ratebox").textContent="Searching\u2026";}return;}
     currenttime=Date.now();fixintervals();reader.read();
     if(!skillid&&reader.skills[0])skillid=reader.skills[0];
@@ -393,19 +421,30 @@
   }
 
   // ─── Core: skill reading ───
+  // #12: Uses configurable xpDropThreshold instead of hardcoded 200000
+  // #9: Detects AFK resume and accumulates paused time
   function skillread(skill,xp,time){
     if(!hist[skill])hist[skill]={id:skill,offcount:0,data:[],visible:true};
     var obj=hist[skill],last=obj.data[obj.data.length-1];
     if(!last)last={xp:0,time:0};
     var dxp=xp-last.xp;if(dxp===0)return;
-    var expected=dxp>0&&dxp<200000;
+    var expected=dxp>0&&dxp<xpDropThreshold; // #12: configurable threshold
     if(last.xp===0||obj.offcount>10||expected){
       if(!expected&&dxp!==0){for(var b=0;b<obj.data.length;b++)obj.data[b].xp+=dxp;}
       obj.data.push({xp:xp,time:time});obj.offcount=0;
       if(expected&&dxp>0){
         if(!totalSessionXp[skill])totalSessionXp[skill]=0;
         totalSessionXp[skill]+=dxp;
-        // notifications removed — were firing spuriously
+
+        // #9: If we were AFK-paused, resume now
+        if(autoPauseEnabled&&afkPauseStart>0){
+          totalPausedTime+=(time-afkPauseStart);
+          afkPauseStart=0;
+          isAfk=false;
+          setStatus("active");
+          if(typeof alt1!=="undefined")alt1.clearTooltip();
+          tooltipout=false;
+        }
       }
     }else{obj.offcount++;}
     if(skill===skillid&&dxp!==0)lastchange=currenttime;
@@ -420,7 +459,6 @@
       if(pnt.time<ds){histData.splice(a,1);a--;continue;}
       if(pnt.time<ms)continue;
       var dxp=pnt.xp-last.xp;
-      // Only count XP if the previous point is also within the window
       if(last.time<ms)dxp=0;
       xpgain+=dxp;
       if(doclusters&&dxp>=1){
@@ -430,24 +468,45 @@
       }
     }
     if(doclusters){clusters.sort(function(a,b){return a.xp-b.xp;});for(var a=clusters.length-1;a>=0;a--)combinecluster(clusters[a].xp,clusters[a],clusters,0);clusters.sort(function(a,b){return b.n-a.n;});}
-    var xprate=measuretime>0?xpgain*3600000/measuretime:0;
+    // #9: Use effective (non-paused) measure time for rate calculation
+    var effectiveMeasure=getEffectiveMeasureTime();
+    var xprate=effectiveMeasure>0?xpgain*3600000/effectiveMeasure:0;
     return{xpgain:xpgain,xprate:xprate,clusters:clusters};
   }
   function combinecluster(xp,cl,cls,layer){if(xp<5||layer>2)return;for(var b=cls.indexOf(cl);b>=0;b--){if(cls[b].n/7<cl.n)continue;var c=Math.round(xp/cls[b].xp);if(Math.abs(c*cls[b].xp-xp)<xp/50+1){cls[b].n+=c*cl.n;cls[b].mass+=c*xp;cls.splice(cls.indexOf(cl),1);return true;}}}
+
+  // #9: Calculate effective measure time (subtracting paused time)
+  function getEffectiveMeasureTime(){
+    if(!autoPauseEnabled)return measuretime;
+    var currentPause=totalPausedTime;
+    // If currently paused, add the ongoing pause duration
+    if(afkPauseStart>0){
+      currentPause+=(currenttime-afkPauseStart);
+    }
+    return Math.max(1000,measuretime-currentPause); // floor at 1s to avoid division issues
+  }
+
   function fixintervals(){if(mode==="fixed")measuretime=fixedtime;if(mode==="start")measuretime=currenttime-measurestart;measuretime=Math.min(measuretime,deletetime);graphtime=300;while(measuretime/80>graphtime)graphtime*=2;}
 
   // ─── Drawing ───
   function drawmeter(){
     var histobj=hist[skillid];
     if(!histobj){elid("ratebox").textContent="0 xp/hr";setSkillIcon(-1);return;}
-    setStatus("active");
+    // Don't override status if paused
+    if(!isAfk)setStatus("active");
     var rate=calcmeter(histobj.data,true,currenttime);
     var sc=skc(skillid);
     elid("ratebox").textContent=spacednr(rate.xprate)+" xp/hr";
     elid("ratebox").style.color=sc.l;
     elid("ratebox").style.textShadow="0 0 8px "+sc.g+", 0 1px 3px rgba(0,0,0,0.7)";
     setSkillIcon(skillid);
-    elid("sessiontime").textContent=displaytime(measuretime);
+    // #9: Show effective time and paused indicator
+    var effTime=getEffectiveMeasureTime();
+    var timeStr=displaytime(effTime);
+    if(autoPauseEnabled&&afkPauseStart>0){
+      timeStr+="\u23F8"; // pause symbol ⏸
+    }
+    elid("sessiontime").textContent=timeStr;
     // Graph rate annotation
     elid("graphrate").textContent=shortxp(rate.xprate)+"/hr";
     drawBreakdown(rate.clusters);
@@ -492,7 +551,7 @@
     panel.innerHTML=html;
   }
 
-  // ─── Goal context menu (right-click on skill row) ───
+  // ─── Goal context menu ───
   function openGoalMenu(e,skill){
     e.preventDefault();e.stopPropagation();
     goalMenuSkill=skill;
@@ -519,7 +578,6 @@
       html+="<div class='goalmenu-opt danger' onclick='removeGoal(\""+skill+"\")'>Clear Goal</div>";
     }
     menu.innerHTML=html;
-    // Position near click
     var x=Math.min(e.clientX,window.innerWidth-140);
     var y=Math.min(e.clientY,window.innerHeight-120);
     menu.style.left=x+"px";menu.style.top=y+"px";
@@ -540,7 +598,7 @@
 
   // ─── Session history ───
   function saveSession(){
-    var summary={date:Date.now(),duration:measuretime,skills:{}};
+    var summary={date:Date.now(),duration:getEffectiveMeasureTime(),skills:{}};
     for(var s in totalSessionXp){
       if(totalSessionXp[s]>0){
         var rate=hist[s]?calcmeter(hist[s].data,false,currenttime).xprate:0;
@@ -577,7 +635,7 @@
     panel.innerHTML=html;
   }
 
-  // ─── Graph drawing (compact, with labels) ───
+  // ─── Graph drawing ───
   function drawgraph(isResizing){
     if(!ctx)return;
     var startx=floorx(currenttime-measuretime,graphtime);
@@ -592,15 +650,13 @@
     var graph=data.graph,max=Math.max(data.max,1);
     var sc=skc(skillid);
 
-    // Background
     ctx.fillStyle="#1b1711";ctx.fillRect(0,0,w,h);
 
-    // Grid — 2 horizontal lines
+    // Grid
     ctx.strokeStyle="rgba(75,62,38,0.2)";ctx.lineWidth=1;
     for(var i=1;i<=2;i++){var gy=h*i/3;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(w,gy);ctx.stroke();}
 
     if(graph.length>1){
-      // Gradient fill — warm gold, subtle
       var grad=ctx.createLinearGradient(0,0,0,h);
       grad.addColorStop(0,"rgba(168,144,80,0.18)");grad.addColorStop(0.6,"rgba(168,144,80,0.04)");grad.addColorStop(1,"rgba(168,144,80,0)");
       ctx.fillStyle=grad;ctx.beginPath();
@@ -608,23 +664,18 @@
       for(var a=0;a<graph.length;a++)ctx.lineTo((graph[a].t-startx)/(endx-startx)*w,(h-2)-(graph[a].v)/max*(h-8));
       ctx.lineTo((graph[graph.length-1].t-startx)/(endx-startx)*w,h);ctx.closePath();ctx.fill();
 
-      // Line — warm cream/gold, soft glow
       ctx.shadowColor="rgba(200,168,78,0.25)";ctx.shadowBlur=4;ctx.strokeStyle="#c8b078";ctx.lineWidth=1.5;ctx.lineJoin="round";ctx.lineCap="round";ctx.beginPath();
       for(var a=0;a<graph.length;a++)ctx.lineTo((graph[a].t-startx)/(endx-startx)*w,(h-2)-(graph[a].v)/max*(h-8));
       ctx.stroke();ctx.shadowBlur=0;
     }
-    // Frame
     ctx.strokeStyle="rgba(42,34,24,0.6)";ctx.lineWidth=1;ctx.strokeRect(0.5,0.5,w-1,h-1);
-
-    // Time labels
     drawGraphTimeLabels(startx,endx);
-
     lastgraphstart=startx;lastgraphend=endx;lastgraphskill=skillid;
   }
 
   function drawGraphTimeLabels(startx,endx){
     var el=elid("graphtimes");
-    var span=(endx-startx)/1000;// seconds
+    var span=(endx-startx)/1000;
     var labels=[];
     var steps=5;
     for(var i=0;i<=steps;i++){
@@ -652,7 +703,7 @@
   function updateXpGained(){var total=0;for(var k in totalSessionXp)total+=totalSessionXp[k];if(total>0)elid("xpgained").textContent="+"+shortxp(total);}
 
   function toggleSkillDropdown(){
-    if(!reader.pos){startFindCounter();return;}
+    if(!reader||!reader.pos){startFindCounter();return;}
     dropdownOpen=!dropdownOpen;var dd=elid("skilldropdown");
     if(dropdownOpen){
       dd.classList.add("open");var html="";
@@ -673,7 +724,11 @@
   function toggleOverlay(){
     overlayOpen=!overlayOpen;
     var el=elid("overlay");
-    if(overlayOpen){el.classList.add("open");}
+    if(overlayOpen){
+      el.classList.add("open");
+      // Dismiss dropdown if open
+      if(dropdownOpen){dropdownOpen=false;elid("skilldropdown").classList.remove("open");}
+    }
     else{el.classList.remove("open");}
   }
 
@@ -685,18 +740,83 @@
   // ─── Controls ───
   function setMode(m){mode=m;localStorage.xpmeter_mode=m;fixintervals();drawmeter();drawgraph(true);}
   function clickTimer(){setMode(mode==="fixed"?"start":"fixed");document.querySelectorAll('input[name="mode"]').forEach(function(r){r.checked=r.value===mode;});}
-  function dblClickTimer(){measurestart=Date.now()-1;setMode("start");}
-  function resetStartPoint(){measurestart=Date.now()-1;totalSessionXp={};elid("xpgained").textContent="";fixintervals();drawmeter();drawgraph(true);}
+  function dblClickTimer(){measurestart=Date.now()-1;totalPausedTime=0;afkPauseStart=0;setMode("start");}
+  function resetStartPoint(){measurestart=Date.now()-1;totalSessionXp={};totalPausedTime=0;afkPauseStart=0;isAfk=false;elid("xpgained").textContent="";fixintervals();drawmeter();drawgraph(true);}
   function setFixedDuration(min){fixedtime=min*60000;localStorage.xpmeter_sampletime=fixedtime;elid("durationLabel").textContent=min+" min";fixintervals();drawmeter();drawgraph(true);}
   function toggleAfkAlert(){afkAlertEnabled=elid("afkToggle").checked;localStorage.xpmeter_afk=afkAlertEnabled?"true":"false";fixAfkAlert();}
   function setAfkTime(sec){afkAlertTime=sec*1000;localStorage.xpmeter_afktime=afkAlertTime;elid("afkLabel").textContent=sec+" s";}
   function clearAllData(){localStorage.removeItem("xpmeter_goals");localStorage.removeItem("xpmeter_history");goals={};sessionHistory=[];drawHistoryPanel();drawSkillsPanel();showNotif("Data cleared","amber");}
 
+  // #9: Auto-pause toggle
+  function toggleAutoPause(){
+    autoPauseEnabled=elid("autoPauseToggle").checked;
+    localStorage.xpmeter_autopause=autoPauseEnabled?"true":"false";
+    if(!autoPauseEnabled){
+      // If disabling, clear any active pause
+      totalPausedTime=0;
+      afkPauseStart=0;
+    }
+  }
+
+  // #12: XP drop threshold control
+  function setDropThreshold(valK){
+    xpDropThresholdK=+valK;
+    xpDropThreshold=xpDropThresholdK*1000;
+    localStorage.xpmeter_dropthresh=xpDropThresholdK;
+    elid("dropThreshLabel").textContent=spacednr(xpDropThresholdK)+"K";
+  }
+
+  // ─── AFK Alert (modified for #9 auto-pause) ───
   function fixAfkAlert(){
-    if(!afkAlertEnabled||!lastchange){if(tooltipout&&typeof alt1!=="undefined"){alt1.clearTooltip();tooltipout=false;}if(tooltiptimeout){clearTimeout(tooltiptimeout);tooltiptimeout=null;}return;}
-    var next=lastchange+afkAlertTime;if(tooltiptimeout){clearTimeout(tooltiptimeout);tooltiptimeout=null;}
-    if(next<=Date.now()){if(!tooltipout){if(typeof alt1!=="undefined")alt1.setTooltip("No XP gained! Check RuneScape");setStatus("afk");tooltipout=true;}}
-    else{if(tooltipout){if(typeof alt1!=="undefined")alt1.clearTooltip();tooltipout=false;setStatus("active");}tooltiptimeout=setTimeout(fixAfkAlert,next-Date.now()+50);}
+    if(!afkAlertEnabled&&!autoPauseEnabled){
+      // Neither feature active, clear everything
+      if(tooltipout&&typeof alt1!=="undefined"){alt1.clearTooltip();tooltipout=false;}
+      if(tooltiptimeout){clearTimeout(tooltiptimeout);tooltiptimeout=null;}
+      if(isAfk){isAfk=false;afkPauseStart=0;setStatus("active");}
+      return;
+    }
+    if(!lastchange){
+      if(tooltipout&&typeof alt1!=="undefined"){alt1.clearTooltip();tooltipout=false;}
+      if(tooltiptimeout){clearTimeout(tooltiptimeout);tooltiptimeout=null;}
+      return;
+    }
+    var next=lastchange+afkAlertTime;
+    if(tooltiptimeout){clearTimeout(tooltiptimeout);tooltiptimeout=null;}
+
+    if(next<=Date.now()){
+      // We are AFK
+      if(!isAfk){
+        isAfk=true;
+        // #9: Start pause timer if auto-pause is on
+        if(autoPauseEnabled&&afkPauseStart===0){
+          afkPauseStart=next; // Pause from the moment AFK threshold was crossed, not now
+          setStatus("paused");
+          showNotif("Auto-paused","amber");
+        }else{
+          setStatus("afk");
+        }
+        if(afkAlertEnabled){
+          if(!tooltipout){
+            if(typeof alt1!=="undefined")alt1.setTooltip("No XP gained! Check RuneScape");
+            tooltipout=true;
+          }
+        }
+      }
+    }else{
+      // Not AFK
+      if(isAfk){
+        isAfk=false;
+        // #9: If we were paused, accumulate pause time
+        // (normally handled in skillread, but this catches edge cases)
+        if(autoPauseEnabled&&afkPauseStart>0){
+          totalPausedTime+=(Date.now()-afkPauseStart);
+          afkPauseStart=0;
+        }
+        setStatus("active");
+      }
+      if(tooltipout){if(typeof alt1!=="undefined")alt1.clearTooltip();tooltipout=false;}
+      tooltiptimeout=setTimeout(fixAfkAlert,next-Date.now()+50);
+    }
   }
 
   function xpcounterRoundError(){if(localStorage.xpmeter_roundwarning==="true")return;var msg="Enable 'show precise values' in RuneMetrics settings for accurate tracking.";if(typeof alt1!=="undefined"){alt1.setTooltip(msg);setTimeout(function(){alt1.clearTooltip();},8000);}localStorage.xpmeter_roundwarning="true";}
