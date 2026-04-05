@@ -72,6 +72,13 @@
     .skillrow-goalpct{font-size:clamp(10px,2.2vw,13px);color:var(--text-dim);}
     /* Goal ETA */
     .skillrow-eta{font-size:clamp(10px,2.2vw,13px);color:var(--gold-dim);white-space:nowrap;flex-shrink:0;}
+    /* Session XP gained per skill */
+    .skillrow-sessxp{font-size:clamp(10px,2.2vw,13px);color:var(--green);white-space:nowrap;flex-shrink:0;opacity:0.85;}
+    /* Rate trend indicator */
+    .skillrow-trend{font-size:clamp(10px,2.2vw,14px);flex-shrink:0;width:12px;text-align:center;line-height:1;}
+    .skillrow-trend.up{color:#5b9b3e;}
+    .skillrow-trend.down{color:#9b3e3e;}
+    .skillrow-trend.flat{color:var(--text-faint);}
 
     .empty-state{padding:12px 10px;font-size:11px;color:var(--text-faint);text-align:center;font-style:italic;}
 
@@ -252,9 +259,9 @@
   "use strict";
 
   /* ================================================================
-     XP METER IMPROVED v3.1 – Pass 1: Data Accuracy Fixes
-     - #12: Configurable XP drop threshold (default 1M)
-     - #9: Auto-pause on AFK (freezes rate denominator)
+     XP METER IMPROVED v3.2 – Pass 1+2
+     Pass 1: #12 configurable XP drop threshold, #9 auto-pause on AFK
+     Pass 2: #7 per-skill session XP, #8 rate trend arrows, #5 skill graph colors
      Built on the original working xpmeter. Pure vanilla JS.
      ================================================================ */
 
@@ -318,6 +325,12 @@
   var totalSessionXp={},lastgraphstart=0,lastgraphend=0,lastgraphskill="";
   var overlayOpen=false;
   var goalMenuSkill="";
+
+  // #8: Rate trend history — stores timestamped rate snapshots per skill
+  var rateHistory={};       // { skillid: [{time:ms, rate:number}, ...] }
+  var TREND_WINDOW=120000;  // compare to rate from 2 minutes ago
+  var TREND_SAMPLE=10000;   // record a snapshot every 10 seconds
+  var TREND_THRESHOLD=0.05; // 5% change required to show arrow
 
   // ─── Settings ───
   var mode=localStorage.xpmeter_mode==="start"?"start":"fixed";
@@ -521,10 +534,21 @@
       if(!hist[a].visible)continue;
       var rate=calcmeter(hist[a].data,false,currenttime);
       var sel=a===skillid?" selected":"",off=iconoffset(a),c=skc(a);
+
+      // #8: Record rate snapshot and compute trend
+      recordRate(a,rate.xprate);
+      var trend=getTrend(a,rate.xprate);
+
       html+="<div class='skillrow"+sel+"' style='border-left-color:"+c.l+"' onclick='setcounter(\""+a+"\")' oncontextmenu='openGoalMenu(event,\""+a+"\")'>";
       html+="<div class='skillrow-icon' style='background-position:0px "+(-22*off)+"px'></div>";
       html+="<div class='skillrow-name'>"+skillName(a)+"</div>";
+      // #8: Trend arrow
+      html+="<div class='skillrow-trend "+trend.css+"'>"+trend.arrow+"</div>";
       html+="<div class='skillrow-rate'>"+shortxp(rate.xprate)+"/hr</div>";
+      // #7: Session XP gained for this skill
+      if(totalSessionXp[a]&&totalSessionXp[a]>0){
+        html+="<div class='skillrow-sessxp'>+"+shortxp(totalSessionXp[a])+"</div>";
+      }
       // Inline goal bar
       if(goals[a]){
         var currentXp=0;
@@ -542,6 +566,36 @@
     }
     if(!html)html="<div class='empty-state'>No skills detected yet</div>";
     panel.innerHTML=html;
+  }
+
+  // #8: Rate trend helpers
+  function recordRate(skill,rate){
+    if(!rateHistory[skill])rateHistory[skill]=[];
+    var arr=rateHistory[skill];
+    // Only record if enough time has passed since last snapshot
+    if(arr.length>0&&(currenttime-arr[arr.length-1].time)<TREND_SAMPLE)return;
+    arr.push({time:currenttime,rate:rate});
+    // Prune entries older than 2x the trend window
+    var cutoff=currenttime-TREND_WINDOW*2;
+    while(arr.length>0&&arr[0].time<cutoff)arr.shift();
+  }
+
+  function getTrend(skill,currentRate){
+    var result={arrow:"\u2500",css:"flat"}; // ─ flat
+    if(!rateHistory[skill]||rateHistory[skill].length<2)return result;
+    if(currentRate<100)return result; // don't show trend for negligible rates
+    var arr=rateHistory[skill];
+    // Find the snapshot closest to TREND_WINDOW ago
+    var targetTime=currenttime-TREND_WINDOW;
+    var oldRate=null;
+    for(var i=0;i<arr.length;i++){
+      if(arr[i].time>=targetTime){oldRate=arr[i].rate;break;}
+    }
+    if(oldRate===null||oldRate<100)return result;
+    var change=(currentRate-oldRate)/oldRate;
+    if(change>TREND_THRESHOLD){result.arrow="\u25B2";result.css="up";}       // ▲
+    else if(change<-TREND_THRESHOLD){result.arrow="\u25BC";result.css="down";} // ▼
+    return result;
   }
 
   function drawBreakdown(clusters){
@@ -657,14 +711,16 @@
     for(var i=1;i<=2;i++){var gy=h*i/3;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(w,gy);ctx.stroke();}
 
     if(graph.length>1){
+      // #5: Skill-specific gradient fill
       var grad=ctx.createLinearGradient(0,0,0,h);
-      grad.addColorStop(0,"rgba(168,144,80,0.18)");grad.addColorStop(0.6,"rgba(168,144,80,0.04)");grad.addColorStop(1,"rgba(168,144,80,0)");
+      grad.addColorStop(0,sc.f+"0.22)");grad.addColorStop(0.6,sc.f+"0.05)");grad.addColorStop(1,sc.f+"0)");
       ctx.fillStyle=grad;ctx.beginPath();
       ctx.moveTo((graph[0].t-startx)/(endx-startx)*w,h);
       for(var a=0;a<graph.length;a++)ctx.lineTo((graph[a].t-startx)/(endx-startx)*w,(h-2)-(graph[a].v)/max*(h-8));
       ctx.lineTo((graph[graph.length-1].t-startx)/(endx-startx)*w,h);ctx.closePath();ctx.fill();
 
-      ctx.shadowColor="rgba(200,168,78,0.25)";ctx.shadowBlur=4;ctx.strokeStyle="#c8b078";ctx.lineWidth=1.5;ctx.lineJoin="round";ctx.lineCap="round";ctx.beginPath();
+      // #5: Skill-specific line color and glow
+      ctx.shadowColor=sc.g;ctx.shadowBlur=4;ctx.strokeStyle=sc.l;ctx.lineWidth=1.5;ctx.lineJoin="round";ctx.lineCap="round";ctx.beginPath();
       for(var a=0;a<graph.length;a++)ctx.lineTo((graph[a].t-startx)/(endx-startx)*w,(h-2)-(graph[a].v)/max*(h-8));
       ctx.stroke();ctx.shadowBlur=0;
     }
@@ -740,12 +796,12 @@
   // ─── Controls ───
   function setMode(m){mode=m;localStorage.xpmeter_mode=m;fixintervals();drawmeter();drawgraph(true);}
   function clickTimer(){setMode(mode==="fixed"?"start":"fixed");document.querySelectorAll('input[name="mode"]').forEach(function(r){r.checked=r.value===mode;});}
-  function dblClickTimer(){measurestart=Date.now()-1;totalPausedTime=0;afkPauseStart=0;setMode("start");}
-  function resetStartPoint(){measurestart=Date.now()-1;totalSessionXp={};totalPausedTime=0;afkPauseStart=0;isAfk=false;elid("xpgained").textContent="";fixintervals();drawmeter();drawgraph(true);}
+  function dblClickTimer(){measurestart=Date.now()-1;totalPausedTime=0;afkPauseStart=0;rateHistory={};setMode("start");}
+  function resetStartPoint(){measurestart=Date.now()-1;totalSessionXp={};totalPausedTime=0;afkPauseStart=0;isAfk=false;rateHistory={};elid("xpgained").textContent="";fixintervals();drawmeter();drawgraph(true);}
   function setFixedDuration(min){fixedtime=min*60000;localStorage.xpmeter_sampletime=fixedtime;elid("durationLabel").textContent=min+" min";fixintervals();drawmeter();drawgraph(true);}
   function toggleAfkAlert(){afkAlertEnabled=elid("afkToggle").checked;localStorage.xpmeter_afk=afkAlertEnabled?"true":"false";fixAfkAlert();}
   function setAfkTime(sec){afkAlertTime=sec*1000;localStorage.xpmeter_afktime=afkAlertTime;elid("afkLabel").textContent=sec+" s";}
-  function clearAllData(){localStorage.removeItem("xpmeter_goals");localStorage.removeItem("xpmeter_history");goals={};sessionHistory=[];drawHistoryPanel();drawSkillsPanel();showNotif("Data cleared","amber");}
+  function clearAllData(){localStorage.removeItem("xpmeter_goals");localStorage.removeItem("xpmeter_history");goals={};sessionHistory=[];rateHistory={};drawHistoryPanel();drawSkillsPanel();showNotif("Data cleared","amber");}
 
   // #9: Auto-pause toggle
   function toggleAutoPause(){
