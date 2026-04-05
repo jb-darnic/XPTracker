@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="skillicons.png" type="image/png" />
+  <link rel="stylesheet" type="text/css" href="nis/runeappslib.css"/>
+  <script type="text/javascript" src="nis/runeappslib.js"></script>
+  <script type="text/javascript" src="nis/alt1lib.js"></script>
+  <script type="text/javascript" src="nis/imagedetect.js"></script>
+  <script type="text/javascript" src="xpcounter.bundle.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+      color: #ccc;
+      background: rgba(0,0,0,0.01);
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── Top bar: skill icon + rate + session timer ── */
+    #topbar {
+      display: flex;
+      align-items: center;
+      padding: 4px 6px;
+      background: rgba(0,0,0,0.55);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      gap: 5px;
+      min-height: 32px;
+      cursor: default;
+    }
+    #skillicon {
+      width: 24px; height: 24px;
+      background-image: url('skillicons.png');
+      background-size: 24px;
+      flex-shrink: 0;
+      display: none;
+    }
+    #ratebox {
+      flex: 1;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 1px 1px 2px #000;
+    }
+    #sessiontime {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      white-space: nowrap;
+      text-shadow: 1px 1px 0 #000;
+      cursor: pointer;
+    }
+    #sessiontime:hover { color: #fff; }
+
+    /* ── Tabs ── */
+    #tabbar {
+      display: flex;
+      background: rgba(0,0,0,0.4);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 3px 0;
+      font-size: 10px;
+      color: rgba(255,255,255,0.45);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    .tab:hover { color: rgba(255,255,255,0.7); }
+    .tab.active { color: #fff; border-bottom-color: #e1bb34; }
+
+    /* ── Panels ── */
+    #panels {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      overflow: hidden;
+    }
+    .panel {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 4px 6px;
+    }
+    .panel.active { display: block; }
+
+    /* ── Graph panel ── */
+    #graphpanel { padding: 0; }
+    #cnv { width: 100%; height: 100%; display: block; background: rgba(0,0,0,0.35); }
+
+    /* ── Skills panel ── */
+    .skillrow {
+      display: flex;
+      align-items: center;
+      padding: 3px 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      cursor: pointer;
+      gap: 5px;
+    }
+    .skillrow:hover { background: rgba(255,255,255,0.06); }
+    .skillrow.selected { background: rgba(225,187,52,0.12); }
+    .skillrow-icon {
+      width: 18px; height: 18px;
+      background-image: url('skillicons.png');
+      background-size: 18px;
+      flex-shrink: 0;
+    }
+    .skillrow-name { flex: 1; font-size: 12px; color: #ddd; text-transform: capitalize; }
+    .skillrow-rate { font-size: 12px; color: #e1bb34; font-weight: 600; }
+    .skillrow-xp { font-size: 10px; color: rgba(255,255,255,0.4); margin-left: 6px; }
+
+    /* ── Breakdown panel ── */
+    .bdrow {
+      display: flex;
+      align-items: center;
+      padding: 2px 4px;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      gap: 6px;
+    }
+    .bdrow-xp { flex: 1; color: #ddd; }
+    .bdrow-n { color: rgba(255,255,255,0.5); min-width: 30px; text-align: right; }
+    .bdrow-track {
+      font-size: 10px;
+      color: #e1bb34;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .bdrow-track:hover { color: #fff; }
+
+    /* ── Settings panel ── */
+    .setting-group { margin-bottom: 8px; }
+    .setting-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 3px; }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      padding: 2px 0;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .setting-row label { cursor: pointer; }
+    .setting-row input[type="range"] { flex: 1; height: 14px; }
+    .setting-row select, .setting-row input[type="number"] {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #ccc;
+      padding: 2px 4px;
+      font-size: 11px;
+      border-radius: 2px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 3px 10px;
+      font-size: 11px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #ccc;
+      cursor: pointer;
+      border-radius: 2px;
+      margin-right: 4px;
+      margin-top: 3px;
+    }
+    .btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    /* ── Tracked XP overlay ── */
+    #tracked {
+      display: none;
+      position: absolute;
+      bottom: 2px; left: 4px;
+      font-size: 10px;
+      color: rgba(255,255,255,0.6);
+      background: rgba(0,0,0,0.5);
+      padding: 1px 4px;
+      border-radius: 2px;
+      cursor: pointer;
+      z-index: 5;
+    }
+    #tracked:hover { color: #fff; }
+
+    /* ── Status dot ── */
+    #statusdot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #555;
+    }
+    #statusdot.searching { background: #e1bb34; animation: pulse 1s infinite; }
+    #statusdot.active { background: #4caf50; }
+    #statusdot.afk { background: #ff9800; }
+    #statusdot.error { background: #f44336; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── XP gained banner ── */
+    #xpgained {
+      font-size: 10px;
+      color: rgba(255,255,255,0.45);
+      white-space: nowrap;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    /* Skill selector dropdown */
+    #skilldropdown {
+      display: none;
+      position: absolute;
+      top: 32px;
+      left: 0;
+      right: 0;
+      background: rgba(15,15,15,0.95);
+      border: 1px solid rgba(255,255,255,0.1);
+      z-index: 20;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #skilldropdown.open { display: block; }
+  </style>
+</head>
+<body class="nis" onload="start()" onresize="resize();">
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <div id="statusdot"></div>
+    <div id="skillicon"></div>
+    <div id="ratebox" onclick="toggleSkillDropdown()">-- xp/hr</div>
+    <div id="xpgained"></div>
+    <div id="sessiontime" onclick="clickTimer()" ondblclick="dblClickTimer()" title="Click: toggle mode. Double-click: reset start."></div>
+  </div>
+
+  <!-- Skill dropdown -->
+  <div id="skilldropdown"></div>
+
+  <!-- Tab bar -->
+  <div id="tabbar">
+    <div class="tab active" data-tab="graphpanel" onclick="switchTab(this)">Graph</div>
+    <div class="tab" data-tab="skillspanel" onclick="switchTab(this)">Skills</div>
+    <div class="tab" data-tab="breakdownpanel" onclick="switchTab(this)">Drops</div>
+    <div class="tab" data-tab="settingspanel" onclick="switchTab(this)">Settings</div>
+  </div>
+
+  <!-- Panel container -->
+  <div id="panels">
+    <!-- Graph -->
+    <div id="graphpanel" class="panel active">
+      <canvas id="cnv"></canvas>
+    </div>
+
+    <!-- Skills -->
+    <div id="skillspanel" class="panel"></div>
+
+    <!-- Breakdown -->
+    <div id="breakdownpanel" class="panel"></div>
+
+    <!-- Settings -->
+    <div id="settingspanel" class="panel">
+      <div class="setting-group">
+        <div class="setting-label">Tracking Mode</div>
+        <div class="setting-row">
+          <label><input type="radio" name="mode" value="fixed" onchange="setMode('fixed')"> Fixed duration</label>
+        </div>
+        <div class="setting-row">
+          <label><input type="radio" name="mode" value="start" onchange="setMode('start')"> Since start</label>
+        </div>
+        <div class="setting-row" id="durationRow">
+          <span style="font-size:11px;">Duration:</span>
+          <input type="range" id="durationSlider" min="1" max="120" value="10"
+                 oninput="setFixedDuration(this.value)">
+          <span id="durationLabel" style="font-size:11px; min-width:42px;">10 min</span>
+        </div>
+        <span class="btn" onclick="resetStartPoint()">Reset start point</span>
+        <span class="btn" onclick="startFindCounter()">Re-scan</span>
+      </div>
+      <div class="setting-group">
+        <div class="setting-label">AFK Alert</div>
+        <div class="setting-row">
+          <label><input type="checkbox" id="afkToggle" onchange="toggleAfkAlert()"> Enable alert</label>
+        </div>
+        <div class="setting-row">
+          <span style="font-size:11px;">After:</span>
+          <input type="range" id="afkSlider" min="20" max="300" step="10" value="120"
+                 oninput="setAfkTime(this.value)">
+          <span id="afkLabel" style="font-size:11px; min-width:42px;">120 s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tracked XP overlay -->
+  <div id="tracked" onclick="trackxp(0)"></div>
+
+  <!-- Audio alert -->
+  <div style="display:none">
+    <audio id="alerter" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav"></audio>
+  </div>
+
+  <script>
+  "use strict";
+
+  /* ================================================================
+     XP METER IMPROVED  –  built on the original working xpmeter
+     Pure vanilla JS, no build step. Uses XpcounterReader from bundle.
+     ================================================================ */
+
+  // ─── Skill names (must match reader output) ───
+  var skillnames = [
+    "attack","defence","strength","constitution","ranged","prayer",
+    "magic","cooking","woodcutting","fletching","fishing","firemaking",
+    "crafting","smithing","mining","herblore","agility","thieving",
+    "slayer","farming","runecrafting","hunter","construction",
+    "summoning","dungeoneering","divination","invention","archaeology",
+    "necromancy"
+  ];
+
+  // ─── State ───
+  var hist = {};
+  var reader = new XpcounterReader.XpcounterReader();
+  var measuretime = 0;
+  var graphtime = 0;
+  var currenttime = 0;
+  var trackedxp = 0;
+  var measurestart = Date.now();
+  var lastdraw = 0;
+  var lastchange = 0;
+  var findfails = 0;
+  var totalSessionXp = {};
+
+  var lastgraphstart = 0;
+  var lastgraphend = 0;
+  var lastgraphskill = "";
+
+  // ─── Settings (localStorage backed) ───
+  var mode = localStorage.xpmeter_mode === "start" ? "start" : "fixed";
+  var fixedtime = +localStorage.xpmeter_sampletime || 600000; // 10min
+  var afkAlertEnabled = localStorage.xpmeter_afk === "true";
+  var afkAlertTime = +localStorage.xpmeter_afktime || 120000; // 120s
+  var skillid = "";
+
+  // ─── Constants ───
+  var deletetime = 4 * 60 * 60 * 1000; // 4hrs
+  var cnv = null;
+  var ctx = null;
+
+  // ─── Tooltip / alert state ───
+  var tooltiptimeout = null;
+  var tooltipout = false;
+  var dropdownOpen = false;
+
+  // ─── Helpers ───
+  function elid(id) { return document.getElementById(id); }
+  function spacednr(n) {
+    if (isNaN(n) || !isFinite(n)) return "0";
+    n = Math.round(n);
+    var s = n.toString();
+    var r = "";
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 === 0) r += ",";
+      r += s[i];
+    }
+    return r;
+  }
+  function displaytime(ms) {
+    var t = Math.floor(ms / 1000);
+    var s = t % 60;
+    var m = Math.floor(t / 60) % 60;
+    var h = Math.floor(t / 3600);
+    var pad = function(n) { return n < 10 ? "0" + n : "" + n; };
+    if (h === 0) return m + ":" + pad(s);
+    return h + ":" + pad(m) + ":" + pad(s);
+  }
+  function floorx(v, step) { return Math.floor(v / step) * step; }
+  function iconoffset(id) {
+    var i = skillnames.indexOf(id);
+    if (id === "com") i = 31;
+    return i;
+  }
+
+  // ─── Lifecycle ───
+  function start() {
+    if (typeof a1lib !== "undefined") {
+      a1lib.identifyUrl("./appconfig.json");
+    }
+    resize();
+    cnv = elid("cnv");
+    ctx = cnv.getContext("2d");
+
+    // Apply saved settings to UI
+    var radios = document.querySelectorAll('input[name="mode"]');
+    radios.forEach(function(r) { r.checked = r.value === mode; });
+    elid("durationSlider").value = fixedtime / 60000;
+    elid("durationLabel").textContent = (fixedtime / 60000) + " min";
+    elid("afkToggle").checked = afkAlertEnabled;
+    elid("afkSlider").value = afkAlertTime / 1000;
+    elid("afkLabel").textContent = (afkAlertTime / 1000) + " s";
+
+    startFindCounter();
+    setInterval(tick, 1000);
+    tick();
+  }
+
+  function startFindCounter() {
+    setStatus("searching");
+    elid("ratebox").textContent = "Searching\u2026";
+    if (!reader.searching) { reader.pos = null; }
+    reader.findAsync(function () {
+      reader.read();
+      var found = false;
+      for (var a in reader.skills) { if (reader.values[a] > 0) found = true; }
+      if (!found) reader.pos = null;
+
+      if (!reader.pos) {
+        findfails++;
+        if (findfails >= 2) { setStatus("error"); elid("ratebox").textContent = "Not found"; }
+      } else {
+        findfails = 0;
+        setStatus("active");
+        if (typeof reader.showPosition === "function") reader.showPosition();
+      }
+      if (reader.rounded) xpcounterRoundError();
+      tick();
+    });
+  }
+
+  function tick() {
+    if (!reader.pos) {
+      if (reader.searching) {
+        setStatus("searching");
+        elid("ratebox").textContent = "Searching\u2026";
+      }
+      return;
+    }
+
+    currenttime = Date.now();
+    fixintervals();
+    reader.read();
+    if (!skillid && reader.skills[0]) skillid = reader.skills[0];
+
+    for (var a in hist) hist[a].visible = false;
+    for (var a = 0; a < reader.skills.length; a++) {
+      if (!reader.skills[a]) continue;
+      if (reader.values[a] === -1) continue;
+      skillread(reader.skills[a], reader.values[a], currenttime);
+      if (hist[reader.skills[a]]) hist[reader.skills[a]].visible = true;
+    }
+
+    drawmeter();
+    drawgraph();
+    fixAfkAlert();
+    updateXpGained();
+  }
+
+  // ─── Core: skill reading (from original) ───
+  function skillread(skill, xp, time) {
+    if (!hist[skill]) {
+      hist[skill] = { id: skill, offcount: 0, data: [], visible: true };
+    }
+    var obj = hist[skill];
+    var last = obj.data[obj.data.length - 1];
+    if (!last) last = { xp: 0, time: 0 };
+
+    var dxp = xp - last.xp;
+    if (dxp === 0) return;
+
+    var expected = dxp > 0 && dxp < 200000;
+    if (last.xp === 0 || obj.offcount > 10 || expected) {
+      if (!expected && dxp !== 0) {
+        for (var b = 0; b < obj.data.length; b++) obj.data[b].xp += dxp;
+      }
+      obj.data.push({ xp: xp, time: time });
+      obj.offcount = 0;
+
+      // Track session totals
+      if (expected && dxp > 0) {
+        if (!totalSessionXp[skill]) totalSessionXp[skill] = 0;
+        totalSessionXp[skill] += dxp;
+      }
+    } else {
+      obj.offcount++;
+    }
+    if (skill === skillid && dxp !== 0) lastchange = currenttime;
+  }
+
+  // ─── Rate calculation (from original) ───
+  function calcmeter(histData, doclusters, time) {
+    var xpgain = 0;
+    var clusters = [];
+    var ms = time - measuretime;
+    var ds = time - deletetime;
+    for (var a = 0; a < histData.length; a++) {
+      var last = histData[a === 0 ? 0 : a - 1];
+      var pnt = histData[a];
+      if (pnt.time < ds) { histData.splice(a, 1); a--; continue; }
+      if (pnt.time < ms) continue;
+      var dxp = pnt.xp - last.xp;
+      xpgain += dxp;
+      if (doclusters && dxp >= 1) {
+        var found = false;
+        for (var b = 0; b < clusters.length; b++) {
+          if (Math.abs(clusters[b].xp - dxp) < dxp / 50 + 1) {
+            clusters[b].n++;
+            clusters[b].mass += dxp;
+            clusters[b].xp = (clusters[b].xp * (clusters[b].n - 1) + dxp) / clusters[b].n;
+            found = true;
+            break;
+          }
+        }
+        if (!found) clusters.push({ n: 1, xp: dxp, mass: dxp });
+      }
+    }
+    if (doclusters) {
+      clusters.sort(function(a, b) { return a.xp - b.xp; });
+      for (var a = clusters.length - 1; a >= 0; a--) {
+        combinecluster(clusters[a].xp, clusters[a], clusters, 0);
+      }
+      clusters.sort(function(a, b) { return b.n - a.n; });
+    }
+    var xprate = measuretime > 0 ? xpgain * 3600000 / measuretime : 0;
+    return { xpgain: xpgain, xprate: xprate, clusters: clusters };
+  }
+
+  function combinecluster(xp, cl, cls, layer) {
+    if (xp < 5 || layer > 2) return false;
+    for (var b = cls.indexOf(cl); b >= 0; b--) {
+      if (cls[b].n / 7 < cl.n) continue;
+      var c = Math.round(xp / cls[b].xp);
+      if (Math.abs(c * cls[b].xp - xp) < xp / 50 + 1) {
+        cls[b].n += c * cl.n;
+        cls[b].mass += c * xp;
+        cls.splice(cls.indexOf(cl), 1);
+        return true;
+      }
+    }
+  }
+
+  function fixintervals() {
+    if (mode === "fixed") measuretime = fixedtime;
+    if (mode === "start") measuretime = currenttime - measurestart;
+    measuretime = Math.min(measuretime, deletetime);
+    graphtime = 300;
+    while (measuretime / 80 > graphtime) graphtime *= 2;
+  }
+
+  // ─── Drawing ───
+  function drawmeter() {
+    var histobj = hist[skillid];
+    if (!histobj) {
+      elid("ratebox").textContent = "0 xp/hr";
+      setSkillIcon(-1);
+      return;
+    }
+    setStatus("active");
+    var rate = calcmeter(histobj.data, true, currenttime);
+    elid("ratebox").textContent = spacednr(rate.xprate) + " xp/hr";
+    setSkillIcon(skillid);
+    elid("sessiontime").textContent = displaytime(measuretime);
+
+    // Update breakdown panel
+    drawBreakdown(rate.clusters);
+
+    // Update tracked xp
+    if (trackedxp) {
+      for (var a = 0; a < rate.clusters.length; a++) {
+        if (Math.abs(rate.clusters[a].xp - trackedxp) < trackedxp / 50 + 1) {
+          elid("tracked").style.display = "block";
+          elid("tracked").textContent = rate.clusters[a].n + "x " + trackedxp.toFixed(1) + " xp";
+          break;
+        }
+      }
+    }
+
+    // Update skills panel
+    drawSkillsPanel();
+
+    lastdraw = currenttime;
+  }
+
+  function drawSkillsPanel() {
+    var panel = elid("skillspanel");
+    var html = "";
+    for (var a in hist) {
+      if (!hist[a].visible) continue;
+      var rate = calcmeter(hist[a].data, false, currenttime);
+      var sel = a === skillid ? " selected" : "";
+      var off = iconoffset(a);
+      var total = totalSessionXp[a] || 0;
+      html += "<div class='skillrow" + sel + "' onclick='setcounter(\"" + a + "\")'>";
+      html += "<div class='skillrow-icon' style='background-position:0px " + (-18 * off) + "px'></div>";
+      html += "<div class='skillrow-name'>" + a + "</div>";
+      html += "<div class='skillrow-rate'>" + spacednr(rate.xprate) + "/hr</div>";
+      if (total > 0) {
+        html += "<div class='skillrow-xp'>+" + spacednr(total) + "</div>";
+      }
+      html += "</div>";
+    }
+    if (!html) html = "<div style='padding:12px;font-size:12px;color:rgba(255,255,255,0.3);text-align:center;'>No skills detected yet</div>";
+    panel.innerHTML = html;
+  }
+
+  function drawBreakdown(clusters) {
+    var panel = elid("breakdownpanel");
+    var html = "";
+    if (!clusters || clusters.length === 0) {
+      html = "<div style='padding:12px;font-size:12px;color:rgba(255,255,255,0.3);text-align:center;'>No XP drops recorded yet</div>";
+    } else {
+      for (var a = 0; a < clusters.length; a++) {
+        html += "<div class='bdrow'>";
+        html += "<div class='bdrow-xp'>" + clusters[a].xp.toFixed(1) + " xp</div>";
+        html += "<div class='bdrow-n'>" + clusters[a].n + "x</div>";
+        html += "<div class='bdrow-track' onclick='trackxp(" + clusters[a].xp + ")' title='Track this drop'>\u25C9</div>";
+        html += "</div>";
+      }
+    }
+    panel.innerHTML = html;
+  }
+
+  function drawgraph(isResizing) {
+    if (!ctx) return;
+    var startx = floorx(currenttime - measuretime, graphtime);
+    var endx = floorx(currenttime - graphtime, graphtime);
+    if (!isResizing && startx === lastgraphstart && endx === lastgraphend && skillid === lastgraphskill) return;
+    if (!hist[skillid]) return;
+
+    var w = cnv.offsetWidth;
+    var h = cnv.offsetHeight;
+    if (h < 20 || w < 20) { cnv.style.visibility = "hidden"; return; }
+    cnv.style.visibility = "visible";
+    cnv.width = w;
+    cnv.height = h;
+
+    var data = calcGraph(hist[skillid], startx, endx, graphtime);
+    var graph = data.graph;
+    var max = Math.max(data.max, 1);
+
+    // Background grid
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 1;
+    for (var i = 1; i < 4; i++) {
+      var gy = h * i / 4;
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(w, gy);
+      ctx.stroke();
+    }
+
+    // Gradient fill
+    if (graph.length > 1) {
+      var grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "rgba(225,187,52,0.25)");
+      grad.addColorStop(1, "rgba(225,187,52,0.02)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo((graph[0].t - startx) / (endx - startx) * w, h);
+      for (var a = 0; a < graph.length; a++) {
+        ctx.lineTo((graph[a].t - startx) / (endx - startx) * w, (h - 2) - (graph[a].v) / max * (h - 4));
+      }
+      ctx.lineTo((graph[graph.length - 1].t - startx) / (endx - startx) * w, h);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Line
+    ctx.strokeStyle = "#e1bb34";
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    for (var a = 0; a < graph.length; a++) {
+      ctx.lineTo((graph[a].t - startx) / (endx - startx) * w, (h - 2) - (graph[a].v) / max * (h - 4));
+    }
+    ctx.stroke();
+
+    lastgraphstart = startx;
+    lastgraphend = endx;
+    lastgraphskill = skillid;
+  }
+
+  function calcGraph(counter, startx, endx, graphstep) {
+    var min = Infinity, max = -Infinity;
+    var graph = [];
+    var last = -1, lastindex = 0;
+    for (var a = 0; a < counter.data.length; a++) {
+      if (counter.data[a].time > startx && last !== -1) break;
+      last = counter.data[a].xp;
+      lastindex = a;
+    }
+    for (var bound = startx; bound <= endx; bound += graphstep) {
+      var b = last;
+      for (var a = lastindex; a < counter.data.length; a++) {
+        if (counter.data[a].time <= bound) continue;
+        if (counter.data[a].time > bound + graphstep) break;
+        b = counter.data[a].xp;
+        lastindex = 0;
+      }
+      b -= last;
+      last = last + b;
+      if (b > max) max = b;
+      if (b < min) min = b;
+      graph.push({ t: bound, v: b });
+    }
+    return { graph: graph, min: min, max: max, step: graphstep };
+  }
+
+  // ─── UI interactions ───
+  function setSkillIcon(id) {
+    var el = elid("skillicon");
+    var off = typeof id === "string" ? iconoffset(id) : id;
+    if (off === -1 || off === undefined) {
+      el.style.display = "none";
+    } else {
+      el.style.backgroundPosition = "0px " + (-24 * off) + "px";
+      el.style.display = "block";
+    }
+  }
+
+  function setStatus(status) {
+    var dot = elid("statusdot");
+    dot.className = status;
+  }
+
+  function updateXpGained() {
+    var total = 0;
+    for (var k in totalSessionXp) total += totalSessionXp[k];
+    if (total > 0) {
+      elid("xpgained").textContent = "+" + spacednr(total);
+    }
+  }
+
+  function switchTab(el) {
+    var tabs = document.querySelectorAll(".tab");
+    var panels = document.querySelectorAll(".panel");
+    tabs.forEach(function(t) { t.classList.remove("active"); });
+    panels.forEach(function(p) { p.classList.remove("active"); });
+    el.classList.add("active");
+    elid(el.getAttribute("data-tab")).classList.add("active");
+    if (el.getAttribute("data-tab") === "graphpanel") {
+      resize();
+    }
+  }
+
+  function toggleSkillDropdown() {
+    if (!reader.pos) {
+      startFindCounter();
+      return;
+    }
+    dropdownOpen = !dropdownOpen;
+    var dd = elid("skilldropdown");
+    if (dropdownOpen) {
+      dd.classList.add("open");
+      var html = "";
+      for (var a in hist) {
+        if (!hist[a].visible || a === skillid) continue;
+        var off = iconoffset(a);
+        var rate = calcmeter(hist[a].data, false, currenttime);
+        html += "<div class='skillrow' onclick='setcounter(\"" + a + "\"); toggleSkillDropdown();'>";
+        html += "<div class='skillrow-icon' style='background-position:0px " + (-18 * off) + "px'></div>";
+        html += "<div class='skillrow-name'>" + a + "</div>";
+        html += "<div class='skillrow-rate'>" + spacednr(rate.xprate) + "/hr</div>";
+        html += "</div>";
+      }
+      if (!html) html = "<div style='padding:8px;font-size:11px;color:#666;text-align:center;'>No other skills</div>";
+      dd.innerHTML = html;
+    } else {
+      dd.classList.remove("open");
+    }
+  }
+
+  function setcounter(id) {
+    skillid = id;
+    dropdownOpen = false;
+    elid("skilldropdown").classList.remove("open");
+    drawmeter();
+    drawgraph(true);
+  }
+
+  function trackxp(xp) {
+    trackedxp = xp;
+    if (!xp) {
+      elid("tracked").style.display = "none";
+    }
+    drawmeter();
+  }
+
+  function resize() {
+    // Compute panel area
+    var topbar = elid("topbar");
+    var tabbar = elid("tabbar");
+    var panelTop = topbar.offsetHeight + tabbar.offsetHeight;
+    var panels = elid("panels");
+    panels.style.top = panelTop + "px";
+    drawgraph(true);
+  }
+
+  // ─── Timer / mode controls ───
+  function setMode(newmode) {
+    mode = newmode;
+    localStorage.xpmeter_mode = newmode;
+    fixintervals();
+    drawmeter();
+    drawgraph(true);
+  }
+
+  function clickTimer() {
+    setMode(mode === "fixed" ? "start" : "fixed");
+    var radios = document.querySelectorAll('input[name="mode"]');
+    radios.forEach(function(r) { r.checked = r.value === mode; });
+  }
+
+  function dblClickTimer() {
+    measurestart = Date.now() - 1;
+    setMode("start");
+  }
+
+  function resetStartPoint() {
+    measurestart = Date.now() - 1;
+    totalSessionXp = {};
+    elid("xpgained").textContent = "";
+    fixintervals();
+    drawmeter();
+    drawgraph(true);
+  }
+
+  function setFixedDuration(min) {
+    fixedtime = min * 60000;
+    localStorage.xpmeter_sampletime = fixedtime;
+    elid("durationLabel").textContent = min + " min";
+    fixintervals();
+    drawmeter();
+    drawgraph(true);
+  }
+
+  // ─── AFK Alert ───
+  function toggleAfkAlert() {
+    afkAlertEnabled = elid("afkToggle").checked;
+    localStorage.xpmeter_afk = afkAlertEnabled ? "true" : "false";
+    fixAfkAlert();
+  }
+
+  function setAfkTime(sec) {
+    afkAlertTime = sec * 1000;
+    localStorage.xpmeter_afktime = afkAlertTime;
+    elid("afkLabel").textContent = sec + " s";
+  }
+
+  function fixAfkAlert() {
+    if (!afkAlertEnabled || !lastchange) {
+      if (tooltipout && typeof alt1 !== "undefined") {
+        alt1.clearTooltip();
+        tooltipout = false;
+      }
+      if (tooltiptimeout) { clearTimeout(tooltiptimeout); tooltiptimeout = null; }
+      return;
+    }
+
+    var next = lastchange + afkAlertTime;
+    if (tooltiptimeout) { clearTimeout(tooltiptimeout); tooltiptimeout = null; }
+
+    if (next <= Date.now()) {
+      if (!tooltipout) {
+        if (typeof alt1 !== "undefined") {
+          alt1.setTooltip("No XP gained! Check RuneScape");
+        }
+        setStatus("afk");
+        tooltipout = true;
+      }
+    } else {
+      if (tooltipout) {
+        if (typeof alt1 !== "undefined") alt1.clearTooltip();
+        tooltipout = false;
+        setStatus("active");
+      }
+      tooltiptimeout = setTimeout(fixAfkAlert, next - Date.now() + 50);
+    }
+  }
+
+  // ─── Errors (from original) ───
+  function xpcounterRoundError() {
+    if (localStorage.xpmeter_roundwarning === "true") return;
+    // Simple inline warning instead of popup (works without promptbox2)
+    var msg = "Your RuneMetrics is set to round XP. For accurate tracking, open RuneMetrics settings and enable 'show precise values'.";
+    if (typeof alt1 !== "undefined") {
+      alt1.setTooltip(msg);
+      setTimeout(function() { alt1.clearTooltip(); }, 8000);
+    }
+    console.warn("XPMeter:", msg);
+    localStorage.xpmeter_roundwarning = "true";
+  }
+
+  </script>
+</body>
+</html>

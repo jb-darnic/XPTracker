@@ -1,0 +1,16 @@
+{
+  "appName": "XP Meter Improved",
+  "description": "Enhanced XP rate tracker with session management, per-skill breakdown, AFK alerts, and a modern dark HUD. Built on the original XP Meter.",
+  "appUrl": "./index.html",
+  "configUrl": "./appconfig.json",
+  "iconUrl": "./skillicons.png",
+  "defaultWidth": 320,
+  "defaultHeight": 220,
+  "minWidth": 260,
+  "minHeight": 160,
+  "maxWidth": 600,
+  "maxHeight": 800,
+  "requestHandlers": [],
+  "activators": [],
+  "permissions": "pixel,overlay"
+}
