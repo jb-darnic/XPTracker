@@ -419,7 +419,10 @@
       var last=histData[a===0?0:a-1],pnt=histData[a];
       if(pnt.time<ds){histData.splice(a,1);a--;continue;}
       if(pnt.time<ms)continue;
-      var dxp=pnt.xp-last.xp;xpgain+=dxp;
+      var dxp=pnt.xp-last.xp;
+      // Only count XP if the previous point is also within the window
+      if(last.time<ms)dxp=0;
+      xpgain+=dxp;
       if(doclusters&&dxp>=1){
         var found=false;
         for(var b=0;b<clusters.length;b++){if(Math.abs(clusters[b].xp-dxp)<dxp/50+1){clusters[b].n++;clusters[b].mass+=dxp;clusters[b].xp=(clusters[b].xp*(clusters[b].n-1)+dxp)/clusters[b].n;found=true;break;}}
