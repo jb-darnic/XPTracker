@@ -1,0 +1,16 @@
+{
+  "appName": "XP Meter Improved",
+  "description": "Modern XP rate tracker with session management, sliding window rates, AFK detection, and overlay support. An improved replacement for the built-in XPMeter.",
+  "appUrl": "./index.html",
+  "configUrl": "./appconfig.json",
+  "iconUrl": "./icon.png",
+  "defaultWidth": 320,
+  "defaultHeight": 450,
+  "minWidth": 280,
+  "minHeight": 300,
+  "maxWidth": 600,
+  "maxHeight": 800,
+  "requestHandlers": [],
+  "activators": [],
+  "permissions": "pixel,overlay"
+}
