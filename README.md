@@ -49,7 +49,7 @@ npm run build
 After building, host the `dist/` folder on GitHub Pages (or any static host), then install in Alt1:
 
 ```
-alt1://addapp/https://jb-darnic.github.io/XPTracker/dist/appconfig.json
+alt1://addapp/https://jb-darnic.github.io/XPTracker/src/appconfig.json
 ```
 
 Or open the URL in Alt1's built-in browser and click "Add App".
