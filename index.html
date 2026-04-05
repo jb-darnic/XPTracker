@@ -40,7 +40,7 @@
     #statusdot.error{background:var(--red);box-shadow:0 0 6px var(--red-glow);}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
 
-    #skillicon{width:20px;height:20px;background-image:url('skillicons.png');background-size:20px auto;flex-shrink:0;display:none;filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.6));image-rendering:pixelated;}
+    #skillicon{width:28px;height:28px;background-image:url('skillicons.png');flex-shrink:0;display:none;vertical-align:bottom;margin-top:-4px;margin-bottom:-4px;}
     #ratebox{flex:1;font-family:'Cinzel',serif;font-size:14px;font-weight:600;color:var(--gold-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,0.7);cursor:pointer;letter-spacing:0.02em;}
     #ratebox:hover{filter:brightness(1.2);}
     #xpgained{font-size:9px;color:var(--green);white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.5);font-weight:700;}
@@ -61,7 +61,7 @@
     .skillrow{display:flex;align-items:center;padding:3px 6px;background:var(--bg-inner);border:1px solid transparent;border-left:2px solid transparent;cursor:pointer;gap:4px;transition:background 0.1s,border-color 0.15s;}
     .skillrow:hover{background:var(--bg-hover);border-color:var(--bdr-outer);}
     .skillrow.selected{background:var(--bg-active);border-left-color:var(--bdr-bright);box-shadow:inset 0 0 8px var(--gold-glow);}
-    .skillrow-icon{width:18px;height:18px;background-image:url('skillicons.png');background-size:18px auto;background-repeat:no-repeat;flex-shrink:0;filter:drop-shadow(0 0 2px rgba(0,0,0,0.6)) brightness(1.15);}
+    .skillrow-icon{width:20px;height:20px;background-image:url('skillicons.png');background-size:20px auto;background-repeat:no-repeat;flex-shrink:0;}
     .skillrow-name{min-width:65px;font-size:10px;color:var(--text);text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .skillrow-rate{font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-left:auto;}
     /* Inline goal bar */
@@ -482,7 +482,7 @@
       var rate=calcmeter(hist[a].data,false,currenttime);
       var sel=a===skillid?" selected":"",off=iconoffset(a),c=skc(a);
       html+="<div class='skillrow"+sel+"' onclick='setcounter(\""+a+"\")' oncontextmenu='openGoalMenu(event,\""+a+"\")'>";
-      html+="<div class='skillrow-icon' style='background-position:0px "+(-18*off)+"px'></div>";
+      html+="<div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div>";
       html+="<div class='skillrow-name' style='color:"+c.l+"'>"+a+"</div>";
       html+="<div class='skillrow-rate' style='color:"+c.l+"'>"+shortxp(rate.xprate)+"/hr</div>";
       // Inline goal bar
@@ -666,7 +666,7 @@
   }
 
   // ─── UI ───
-  function setSkillIcon(id){var el=elid("skillicon"),off=typeof id==="string"?iconoffset(id):id;if(off===-1||off===undefined){el.style.display="none";}else{el.style.backgroundPosition="0px "+(-20*off)+"px";el.style.display="block";}}
+  function setSkillIcon(id){var el=elid("skillicon"),off=typeof id==="string"?iconoffset(id):id;if(off===-1||off===undefined){el.style.display="none";}else{el.style.backgroundPosition="0px "+(-28*off)+"px";el.style.display="block";}}
   function setStatus(s){elid("statusdot").className=s;}
   function updateXpGained(){var total=0;for(var k in totalSessionXp)total+=totalSessionXp[k];if(total>0)elid("xpgained").textContent="+"+shortxp(total);}
 
@@ -676,7 +676,7 @@
     if(dropdownOpen){
       dd.classList.add("open");var html="";
       for(var a in hist){if(!hist[a].visible||a===skillid)continue;var off=iconoffset(a),rate=calcmeter(hist[a].data,false,currenttime),c=skc(a);
-        html+="<div class='skillrow' onclick='setcounter(\""+a+"\");toggleSkillDropdown();'><div class='skillrow-icon' style='background-position:0px "+(-18*off)+"px'></div><div class='skillrow-name'>"+a+"</div><div class='skillrow-rate' style='color:"+c.l+"'>"+spacednr(rate.xprate)+"/hr</div></div>";}
+        html+="<div class='skillrow' onclick='setcounter(\""+a+"\");toggleSkillDropdown();'><div class='skillrow-icon' style='background-position:0px "+(-20*off)+"px'></div><div class='skillrow-name'>"+a+"</div><div class='skillrow-rate' style='color:"+c.l+"'>"+spacednr(rate.xprate)+"/hr</div></div>";}
       if(!html)html="<div class='empty-state'>No other skills</div>";dd.innerHTML=html;
     }else{dd.classList.remove("open");}
   }
