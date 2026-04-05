@@ -9,884 +9,702 @@
   <script type="text/javascript" src="nis/imagedetect.js"></script>
   <script type="text/javascript" src="xpcounter.bundle.js"></script>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      font-family: 'Segoe UI', Calibri, Arial, sans-serif;
-      color: #ccc;
-      background: rgba(0,0,0,0.01);
-      overflow: hidden;
-      user-select: none;
-      -webkit-user-select: none;
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Quattrocento+Sans:wght@400;700&display=swap');
+    :root {
+      --bg-deep:#0d0b08;--bg-panel:#171310;--bg-inner:#1c1812;--bg-raised:#231e17;--bg-hover:#2a241b;--bg-active:#322a1f;
+      --bdr-outer:#3d3122;--bdr-inner:#564832;--bdr-gold:#8b7340;--bdr-bright:#b8994d;
+      --gold:#c8a84e;--gold-bright:#e8c252;--gold-dim:#8b7340;--gold-glow:rgba(200,168,78,0.15);
+      --text:#c8b89a;--text-bright:#e4d5b7;--text-dim:#7a6e5c;--text-faint:#4a4236;
+      --green:#5b9b3e;--green-glow:rgba(91,155,62,0.5);--amber:#c89b2a;--amber-glow:rgba(200,155,42,0.5);--red:#9b3e3e;--red-glow:rgba(155,62,62,0.5);
     }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Quattrocento Sans','Segoe UI',sans-serif;color:var(--text);background:var(--bg-deep);overflow:hidden;user-select:none;-webkit-user-select:none;font-size:12px;}
+    ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg-deep);}::-webkit-scrollbar-thumb{background:var(--bdr-inner);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--bdr-gold);}
 
-    /* ── Top bar: skill icon + rate + session timer ── */
-    #topbar {
-      display: flex;
-      align-items: center;
-      padding: 4px 6px;
-      background: rgba(0,0,0,0.55);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      gap: 5px;
-      min-height: 32px;
-      cursor: default;
-    }
-    #skillicon {
-      width: 24px; height: 24px;
-      background-image: url('skillicons.png');
-      background-size: 24px;
-      flex-shrink: 0;
-      display: none;
-    }
-    #ratebox {
-      flex: 1;
-      font-size: 18px;
-      font-weight: 600;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-shadow: 1px 1px 2px #000;
-    }
-    #sessiontime {
-      font-size: 11px;
-      color: rgba(255,255,255,0.6);
-      white-space: nowrap;
-      text-shadow: 1px 1px 0 #000;
-      cursor: pointer;
-    }
-    #sessiontime:hover { color: #fff; }
+    /* ── Frame ── */
+    #frame{position:absolute;inset:0;border:1px solid var(--bdr-outer);display:flex;flex-direction:column;overflow:hidden;background:var(--bg-panel);}
+    #frame::before{content:'';position:absolute;inset:1px;border:1px solid var(--bdr-inner);pointer-events:none;z-index:50;}
+
+    /* ── Header ── */
+    #topbar{display:flex;align-items:center;padding:5px 8px;background:linear-gradient(180deg,rgba(75,62,38,0.25) 0%,transparent 100%),var(--bg-raised);border-bottom:1px solid var(--bdr-outer);gap:6px;min-height:34px;cursor:default;position:relative;flex-shrink:0;}
+    #topbar::before{content:'';position:absolute;top:0;left:8px;right:8px;height:1px;background:linear-gradient(90deg,transparent,var(--bdr-gold),transparent);}
+
+    #statusdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--text-faint);transition:background 0.3s,box-shadow 0.3s;}
+    #statusdot.searching{background:var(--amber);box-shadow:0 0 6px var(--amber-glow);animation:pulse 1.5s ease-in-out infinite;}
+    #statusdot.active{background:var(--green);box-shadow:0 0 6px var(--green-glow);}
+    #statusdot.afk{background:var(--amber);box-shadow:0 0 6px var(--amber-glow);animation:pulse 2s ease-in-out infinite;}
+    #statusdot.error{background:var(--red);box-shadow:0 0 6px var(--red-glow);}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+
+    #skillicon{width:22px;height:22px;background-image:url('skillicons.png');background-size:22px;flex-shrink:0;display:none;filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.6));}
+    #ratebox{flex:1;font-family:'Cinzel',serif;font-size:16px;font-weight:600;color:var(--gold-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,0.7);cursor:pointer;letter-spacing:0.02em;}
+    #ratebox:hover{filter:brightness(1.2);}
+    #xpgained{font-size:10px;color:var(--green);white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.5);font-weight:700;}
+    #sessiontime{font-size:10px;color:var(--text-dim);white-space:nowrap;cursor:pointer;padding:1px 5px;background:var(--bg-panel);border:1px solid var(--bdr-outer);border-radius:2px;transition:color 0.15s,border-color 0.15s;}
+    #sessiontime:hover{color:var(--text-bright);border-color:var(--bdr-gold);}
 
     /* ── Tabs ── */
-    #tabbar {
-      display: flex;
-      background: rgba(0,0,0,0.4);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .tab {
-      flex: 1;
-      text-align: center;
-      padding: 3px 0;
-      font-size: 10px;
-      color: rgba(255,255,255,0.45);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: color .15s, border-color .15s;
-    }
-    .tab:hover { color: rgba(255,255,255,0.7); }
-    .tab.active { color: #fff; border-bottom-color: #e1bb34; }
+    #tabbar{display:flex;background:var(--bg-panel);border-bottom:1px solid var(--bdr-outer);flex-shrink:0;}
+    .tab{flex:1;text-align:center;padding:4px 0 5px;font-size:9px;font-family:'Cinzel',serif;font-weight:400;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.2s,border-color 0.2s,background 0.15s;}
+    .tab:hover{color:var(--text);background:rgba(75,62,38,0.1);}
+    .tab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(75,62,38,0.15);}
 
     /* ── Panels ── */
-    #panels {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      overflow: hidden;
-    }
-    .panel {
-      display: none;
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 4px 6px;
-    }
-    .panel.active { display: block; }
+    #panels{position:relative;flex:1;overflow:hidden;}
+    .panel{display:none;position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:4px 6px;}
+    .panel.active{display:block;}
+    #graphpanel{padding:0;background:var(--bg-inner);}
+    #cnv{width:100%;height:100%;display:block;}
 
-    /* ── Graph panel ── */
-    #graphpanel { padding: 0; }
-    #cnv { width: 100%; height: 100%; display: block; background: rgba(0,0,0,0.35); }
+    /* ── Skill rows ── */
+    .skillrow{display:flex;align-items:center;padding:3px 5px;margin-bottom:1px;background:var(--bg-inner);border:1px solid transparent;cursor:pointer;gap:5px;transition:background 0.1s,border-color 0.15s;}
+    .skillrow:hover{background:var(--bg-hover);border-color:var(--bdr-outer);}
+    .skillrow.selected{background:var(--bg-active);border-color:var(--bdr-gold);box-shadow:inset 0 0 8px var(--gold-glow);}
+    .skillrow-icon{width:16px;height:16px;background-image:url('skillicons.png');background-size:16px;flex-shrink:0;filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.5));}
+    .skillrow-name{flex:1;font-size:11px;color:var(--text);text-transform:capitalize;}
+    .skillrow-rate{font-size:11px;font-weight:700;}
+    .skillrow-xp{font-size:9px;color:var(--green);font-weight:700;min-width:32px;text-align:right;}
+    .skillrow-spark{width:44px;height:14px;flex-shrink:0;}
 
-    /* ── Skills panel ── */
-    .skillrow {
-      display: flex;
-      align-items: center;
-      padding: 3px 4px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      cursor: pointer;
-      gap: 5px;
-    }
-    .skillrow:hover { background: rgba(255,255,255,0.06); }
-    .skillrow.selected { background: rgba(225,187,52,0.12); }
-    .skillrow-icon {
-      width: 18px; height: 18px;
-      background-image: url('skillicons.png');
-      background-size: 18px;
-      flex-shrink: 0;
-    }
-    .skillrow-name { flex: 1; font-size: 12px; color: #ddd; text-transform: capitalize; }
-    .skillrow-rate { font-size: 12px; color: #e1bb34; font-weight: 600; }
-    .skillrow-xp { font-size: 10px; color: rgba(255,255,255,0.4); margin-left: 6px; }
+    /* ── Goals ── */
+    .goalrow{padding:5px 6px;margin-bottom:2px;background:var(--bg-inner);border:1px solid transparent;}
+    .goalrow:hover{border-color:var(--bdr-outer);}
+    .goalrow-header{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+    .goalrow-icon{width:16px;height:16px;background-image:url('skillicons.png');background-size:16px;flex-shrink:0;}
+    .goalrow-name{flex:1;font-size:11px;color:var(--text);text-transform:capitalize;}
+    .goalrow-target{font-size:10px;color:var(--text-dim);}
+    .goalrow-eta{font-size:10px;color:var(--gold);font-weight:700;}
+    .goal-bar{height:4px;background:var(--bg-deep);border:1px solid var(--bdr-outer);margin-top:2px;overflow:hidden;}
+    .goal-fill{height:100%;transition:width 0.5s;}
+    .goal-pct{font-size:9px;color:var(--text-dim);margin-top:1px;text-align:right;}
+    .goal-add{display:flex;align-items:center;justify-content:center;padding:8px;color:var(--text-faint);font-size:11px;cursor:pointer;border:1px dashed var(--bdr-outer);margin-top:4px;transition:color 0.15s,border-color 0.15s;}
+    .goal-add:hover{color:var(--gold);border-color:var(--bdr-gold);}
+    .goal-remove{font-size:9px;color:var(--text-faint);cursor:pointer;padding:0 3px;}
+    .goal-remove:hover{color:var(--red);}
 
-    /* ── Breakdown panel ── */
-    .bdrow {
-      display: flex;
-      align-items: center;
-      padding: 2px 4px;
-      font-size: 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      gap: 6px;
-    }
-    .bdrow-xp { flex: 1; color: #ddd; }
-    .bdrow-n { color: rgba(255,255,255,0.5); min-width: 30px; text-align: right; }
-    .bdrow-track {
-      font-size: 10px;
-      color: #e1bb34;
-      cursor: pointer;
-      padding: 0 4px;
-    }
-    .bdrow-track:hover { color: #fff; }
+    /* ── History ── */
+    .histrow{padding:5px 6px;margin-bottom:2px;background:var(--bg-inner);border:1px solid transparent;font-size:11px;}
+    .histrow:hover{border-color:var(--bdr-outer);}
+    .histrow-date{color:var(--text-dim);font-size:10px;margin-bottom:2px;}
+    .histrow-stats{display:flex;gap:10px;}
+    .histrow-stat{color:var(--text);}
+    .histrow-stat span{color:var(--gold);font-weight:700;}
 
-    /* ── Settings panel ── */
-    .setting-group { margin-bottom: 8px; }
-    .setting-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 3px; }
-    .setting-row {
-      display: flex;
-      align-items: center;
-      padding: 2px 0;
-      gap: 6px;
-      font-size: 12px;
-    }
-    .setting-row label { cursor: pointer; }
-    .setting-row input[type="range"] { flex: 1; height: 14px; }
-    .setting-row select, .setting-row input[type="number"] {
-      background: rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.15);
-      color: #ccc;
-      padding: 2px 4px;
-      font-size: 11px;
-      border-radius: 2px;
-    }
-    .btn {
-      display: inline-block;
-      padding: 3px 10px;
-      font-size: 11px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      color: #ccc;
-      cursor: pointer;
-      border-radius: 2px;
-      margin-right: 4px;
-      margin-top: 3px;
-    }
-    .btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    /* ── Breakdown ── */
+    .bdrow{display:flex;align-items:center;padding:3px 5px;margin-bottom:1px;background:var(--bg-inner);font-size:11px;gap:6px;}
+    .bdrow:hover{background:var(--bg-hover);}
+    .bdrow-xp{flex:1;color:var(--text);}
+    .bdrow-n{color:var(--text-dim);min-width:32px;text-align:right;font-weight:700;}
+    .bdrow-track{color:var(--gold-dim);cursor:pointer;padding:0 3px;transition:color 0.15s;}
+    .bdrow-track:hover{color:var(--gold-bright);}
 
-    /* ── Tracked XP overlay ── */
-    #tracked {
-      display: none;
-      position: absolute;
-      bottom: 2px; left: 4px;
-      font-size: 10px;
-      color: rgba(255,255,255,0.6);
-      background: rgba(0,0,0,0.5);
-      padding: 1px 4px;
-      border-radius: 2px;
-      cursor: pointer;
-      z-index: 5;
-    }
-    #tracked:hover { color: #fff; }
+    /* ── Settings ── */
+    .setting-group{margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--bdr-outer);}
+    .setting-group:last-child{border-bottom:none;}
+    .setting-label{font-family:'Cinzel',serif;font-size:9px;font-weight:600;color:var(--gold-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;}
+    .setting-row{display:flex;align-items:center;padding:2px 0;gap:6px;font-size:11px;}
+    .setting-row label{cursor:pointer;}
+    .setting-row input[type="range"]{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:var(--bdr-outer);border-radius:2px;outline:none;}
+    .setting-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--gold);border-radius:50%;cursor:pointer;border:1px solid var(--bg-deep);box-shadow:0 0 4px var(--gold-glow);}
+    .setting-row input[type="checkbox"],.setting-row input[type="radio"]{-webkit-appearance:none;appearance:none;width:13px;height:13px;background:var(--bg-panel);border:1px solid var(--bdr-inner);cursor:pointer;position:relative;flex-shrink:0;}
+    .setting-row input[type="radio"]{border-radius:50%;}
+    .setting-row input[type="checkbox"]:checked,.setting-row input[type="radio"]:checked{background:var(--bg-active);border-color:var(--gold);}
+    .setting-row input[type="checkbox"]:checked::after{content:'';position:absolute;left:3px;top:1px;width:5px;height:8px;border:solid var(--gold);border-width:0 2px 2px 0;transform:rotate(45deg);}
+    .setting-row input[type="radio"]:checked::after{content:'';position:absolute;left:3px;top:3px;width:5px;height:5px;background:var(--gold);border-radius:50%;}
+    .btn{display:inline-block;padding:3px 10px;font-size:9px;font-family:'Cinzel',serif;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;background:linear-gradient(180deg,rgba(75,62,38,0.3) 0%,transparent 60%),var(--bg-raised);border:1px solid var(--bdr-inner);color:var(--text);cursor:pointer;margin-right:4px;margin-top:3px;transition:border-color 0.15s,color 0.15s;}
+    .btn:hover{border-color:var(--bdr-gold);color:var(--gold);}
+    .btn:active{background:var(--bg-active);border-color:var(--gold);}
 
-    /* ── Status dot ── */
-    #statusdot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      background: #555;
-    }
-    #statusdot.searching { background: #e1bb34; animation: pulse 1s infinite; }
-    #statusdot.active { background: #4caf50; }
-    #statusdot.afk { background: #ff9800; }
-    #statusdot.error { background: #f44336; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    /* ── Notifications ── */
+    #notifications{position:fixed;top:38px;right:8px;z-index:60;display:flex;flex-direction:column;gap:3px;pointer-events:none;}
+    .notif{padding:4px 8px;font-size:10px;font-weight:700;border:1px solid;border-radius:2px;animation:notifIn 0.3s ease-out;pointer-events:auto;cursor:default;max-width:200px;text-shadow:0 1px 2px rgba(0,0,0,0.5);}
+    .notif.gold{color:var(--gold-bright);border-color:var(--gold);background:rgba(35,30,23,0.92);}
+    .notif.green{color:var(--green);border-color:var(--green);background:rgba(23,35,20,0.92);}
+    .notif.amber{color:var(--amber);border-color:var(--amber);background:rgba(35,30,15,0.92);}
+    @keyframes notifIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+    .notif.out{animation:notifOut 0.3s ease-in forwards;}
+    @keyframes notifOut{to{opacity:0;transform:translateX(20px);}}
 
-    /* ── XP gained banner ── */
-    #xpgained {
-      font-size: 10px;
-      color: rgba(255,255,255,0.45);
-      white-space: nowrap;
-      text-shadow: 1px 1px 0 #000;
-    }
+    /* ── Tracked & dropdown ── */
+    #tracked{display:none;position:absolute;bottom:4px;left:6px;font-size:10px;color:var(--gold);background:rgba(13,11,8,0.85);border:1px solid var(--bdr-outer);padding:2px 6px;cursor:pointer;z-index:10;font-weight:700;}
+    #tracked:hover{border-color:var(--gold);color:var(--gold-bright);}
+    #skilldropdown{display:none;position:absolute;top:34px;left:4px;right:4px;background:var(--bg-raised);border:1px solid var(--bdr-gold);z-index:30;max-height:200px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.6);}
+    #skilldropdown.open{display:block;}
 
-    /* Skill selector dropdown */
-    #skilldropdown {
-      display: none;
-      position: absolute;
-      top: 32px;
-      left: 0;
-      right: 0;
-      background: rgba(15,15,15,0.95);
-      border: 1px solid rgba(255,255,255,0.1);
-      z-index: 20;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    #skilldropdown.open { display: block; }
+    .empty-state{padding:14px 10px;font-size:11px;color:var(--text-faint);text-align:center;font-style:italic;}
+
+    /* ── Goal popup ── */
+    #goalpopup{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-raised);border:1px solid var(--bdr-gold);padding:10px;z-index:70;min-width:180px;box-shadow:0 6px 24px rgba(0,0,0,0.6);}
+    #goalpopup.open{display:block;}
+    #goalpopup h3{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;}
+    .popup-opt{padding:4px 6px;font-size:11px;color:var(--text);cursor:pointer;transition:background 0.1s;}
+    .popup-opt:hover{background:var(--bg-hover);color:var(--gold);}
+    .popup-opt.disabled{color:var(--text-faint);cursor:default;}
+    .popup-opt.disabled:hover{background:transparent;color:var(--text-faint);}
+    #goalpopup-close{position:absolute;top:4px;right:6px;color:var(--text-faint);cursor:pointer;font-size:14px;}
+    #goalpopup-close:hover{color:var(--text);}
+
+    /* noise */
+    #noise{position:fixed;inset:0;pointer-events:none;z-index:100;opacity:0.02;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px 200px;}
   </style>
 </head>
 <body class="nis" onload="start()" onresize="resize();">
+  <div id="noise"></div>
+  <div id="notifications"></div>
 
-  <!-- Top bar -->
-  <div id="topbar">
-    <div id="statusdot"></div>
-    <div id="skillicon"></div>
-    <div id="ratebox" onclick="toggleSkillDropdown()">-- xp/hr</div>
-    <div id="xpgained"></div>
-    <div id="sessiontime" onclick="clickTimer()" ondblclick="dblClickTimer()" title="Click: toggle mode. Double-click: reset start."></div>
-  </div>
-
-  <!-- Skill dropdown -->
-  <div id="skilldropdown"></div>
-
-  <!-- Tab bar -->
-  <div id="tabbar">
-    <div class="tab active" data-tab="graphpanel" onclick="switchTab(this)">Graph</div>
-    <div class="tab" data-tab="skillspanel" onclick="switchTab(this)">Skills</div>
-    <div class="tab" data-tab="breakdownpanel" onclick="switchTab(this)">Drops</div>
-    <div class="tab" data-tab="settingspanel" onclick="switchTab(this)">Settings</div>
-  </div>
-
-  <!-- Panel container -->
-  <div id="panels">
-    <!-- Graph -->
-    <div id="graphpanel" class="panel active">
-      <canvas id="cnv"></canvas>
+  <div id="frame">
+    <div id="topbar">
+      <div id="statusdot"></div>
+      <div id="skillicon"></div>
+      <div id="ratebox" onclick="toggleSkillDropdown()">-- xp/hr</div>
+      <div id="xpgained"></div>
+      <div id="sessiontime" onclick="clickTimer()" ondblclick="dblClickTimer()" title="Click: toggle mode&#10;Double-click: reset"></div>
     </div>
-
-    <!-- Skills -->
-    <div id="skillspanel" class="panel"></div>
-
-    <!-- Breakdown -->
-    <div id="breakdownpanel" class="panel"></div>
-
-    <!-- Settings -->
-    <div id="settingspanel" class="panel">
-      <div class="setting-group">
-        <div class="setting-label">Tracking Mode</div>
-        <div class="setting-row">
-          <label><input type="radio" name="mode" value="fixed" onchange="setMode('fixed')"> Fixed duration</label>
+    <div id="skilldropdown"></div>
+    <div id="tabbar">
+      <div class="tab active" data-tab="graphpanel" onclick="switchTab(this)">Graph</div>
+      <div class="tab" data-tab="skillspanel" onclick="switchTab(this)">Skills</div>
+      <div class="tab" data-tab="goalspanel" onclick="switchTab(this)">Goals</div>
+      <div class="tab" data-tab="breakdownpanel" onclick="switchTab(this)">Drops</div>
+      <div class="tab" data-tab="historypanel" onclick="switchTab(this)">History</div>
+      <div class="tab" data-tab="settingspanel" onclick="switchTab(this)">Settings</div>
+    </div>
+    <div id="panels">
+      <div id="graphpanel" class="panel active"><canvas id="cnv"></canvas></div>
+      <div id="skillspanel" class="panel"></div>
+      <div id="goalspanel" class="panel"></div>
+      <div id="breakdownpanel" class="panel"></div>
+      <div id="historypanel" class="panel"></div>
+      <div id="settingspanel" class="panel">
+        <div class="setting-group">
+          <div class="setting-label">Tracking Mode</div>
+          <div class="setting-row"><label><input type="radio" name="mode" value="fixed" onchange="setMode('fixed')"> Fixed duration</label></div>
+          <div class="setting-row"><label><input type="radio" name="mode" value="start" onchange="setMode('start')"> Since start</label></div>
+          <div class="setting-row"><span>Duration:</span><input type="range" id="durationSlider" min="1" max="120" value="10" oninput="setFixedDuration(this.value)"><span id="durationLabel" style="min-width:38px;text-align:right;color:var(--gold)">10 min</span></div>
+          <span class="btn" onclick="resetStartPoint()">Reset</span>
+          <span class="btn" onclick="startFindCounter()">Re-scan</span>
         </div>
-        <div class="setting-row">
-          <label><input type="radio" name="mode" value="start" onchange="setMode('start')"> Since start</label>
+        <div class="setting-group">
+          <div class="setting-label">AFK Alert</div>
+          <div class="setting-row"><label><input type="checkbox" id="afkToggle" onchange="toggleAfkAlert()"> Enable alert</label></div>
+          <div class="setting-row"><span>After:</span><input type="range" id="afkSlider" min="20" max="300" step="10" value="120" oninput="setAfkTime(this.value)"><span id="afkLabel" style="min-width:38px;text-align:right;color:var(--gold)">120 s</span></div>
         </div>
-        <div class="setting-row" id="durationRow">
-          <span style="font-size:11px;">Duration:</span>
-          <input type="range" id="durationSlider" min="1" max="120" value="10"
-                 oninput="setFixedDuration(this.value)">
-          <span id="durationLabel" style="font-size:11px; min-width:42px;">10 min</span>
+        <div class="setting-group">
+          <div class="setting-label">Notifications</div>
+          <div class="setting-row"><label><input type="checkbox" id="notifLevelup" onchange="saveNotifSettings()" checked> Level-up alerts</label></div>
+          <div class="setting-row"><label><input type="checkbox" id="notifMilestone" onchange="saveNotifSettings()" checked> Milestone alerts (1M xp)</label></div>
         </div>
-        <span class="btn" onclick="resetStartPoint()">Reset start point</span>
-        <span class="btn" onclick="startFindCounter()">Re-scan</span>
-      </div>
-      <div class="setting-group">
-        <div class="setting-label">AFK Alert</div>
-        <div class="setting-row">
-          <label><input type="checkbox" id="afkToggle" onchange="toggleAfkAlert()"> Enable alert</label>
-        </div>
-        <div class="setting-row">
-          <span style="font-size:11px;">After:</span>
-          <input type="range" id="afkSlider" min="20" max="300" step="10" value="120"
-                 oninput="setAfkTime(this.value)">
-          <span id="afkLabel" style="font-size:11px; min-width:42px;">120 s</span>
+        <div class="setting-group">
+          <div class="setting-label">Data</div>
+          <span class="btn" onclick="clearAllData()">Clear all data</span>
+          <span class="btn" onclick="saveSession()">Save session</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Tracked XP overlay -->
   <div id="tracked" onclick="trackxp(0)"></div>
-
-  <!-- Audio alert -->
-  <div style="display:none">
-    <audio id="alerter" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav"></audio>
-  </div>
+  <div id="goalpopup"><span id="goalpopup-close" onclick="closeGoalPopup()">&times;</span><h3 id="goalpopup-title">Set Goal</h3><div id="goalpopup-opts"></div></div>
+  <div style="display:none"><audio id="alerter" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav"></audio></div>
 
   <script>
   "use strict";
 
   /* ================================================================
-     XP METER IMPROVED  –  built on the original working xpmeter
-     Pure vanilla JS, no build step. Uses XpcounterReader from bundle.
+     XP METER IMPROVED v2 – RS3-styled, feature-complete
+     Built on the original working xpmeter. Pure vanilla JS.
      ================================================================ */
 
-  // ─── Skill names (must match reader output) ───
-  var skillnames = [
-    "attack","defence","strength","constitution","ranged","prayer",
-    "magic","cooking","woodcutting","fletching","fishing","firemaking",
-    "crafting","smithing","mining","herblore","agility","thieving",
-    "slayer","farming","runecrafting","hunter","construction",
-    "summoning","dungeoneering","divination","invention","archaeology",
-    "necromancy"
-  ];
+  // ─── Skill definitions ───
+  var skillnames=["attack","defence","strength","constitution","ranged","prayer","magic","cooking","woodcutting","fletching","fishing","firemaking","crafting","smithing","mining","herblore","agility","thieving","slayer","farming","runecrafting","hunter","construction","summoning","dungeoneering","divination","invention","archaeology","necromancy"];
+
+  var skillcolors={
+    attack:{l:"#c43434",f:"rgba(196,52,52,",g:"rgba(196,52,52,0.4)"},
+    defence:{l:"#6888c8",f:"rgba(104,136,200,",g:"rgba(104,136,200,0.4)"},
+    strength:{l:"#18b818",f:"rgba(24,184,24,",g:"rgba(24,184,24,0.4)"},
+    constitution:{l:"#c8c8c8",f:"rgba(200,200,200,",g:"rgba(200,200,200,0.3)"},
+    ranged:{l:"#68a840",f:"rgba(104,168,64,",g:"rgba(104,168,64,0.4)"},
+    prayer:{l:"#c8c8a0",f:"rgba(200,200,160,",g:"rgba(200,200,160,0.3)"},
+    magic:{l:"#6070c8",f:"rgba(96,112,200,",g:"rgba(96,112,200,0.4)"},
+    cooking:{l:"#a04898",f:"rgba(160,72,152,",g:"rgba(160,72,152,0.4)"},
+    woodcutting:{l:"#a08848",f:"rgba(160,136,72,",g:"rgba(160,136,72,0.4)"},
+    fletching:{l:"#18a0a0",f:"rgba(24,160,160,",g:"rgba(24,160,160,0.4)"},
+    fishing:{l:"#6898c8",f:"rgba(104,152,200,",g:"rgba(104,152,200,0.4)"},
+    firemaking:{l:"#c88828",f:"rgba(200,136,40,",g:"rgba(200,136,40,0.4)"},
+    crafting:{l:"#b0a078",f:"rgba(176,160,120,",g:"rgba(176,160,120,0.3)"},
+    smithing:{l:"#a0a0a0",f:"rgba(160,160,160,",g:"rgba(160,160,160,0.3)"},
+    mining:{l:"#70a8b8",f:"rgba(112,168,184,",g:"rgba(112,168,184,0.4)"},
+    herblore:{l:"#18b060",f:"rgba(24,176,96,",g:"rgba(24,176,96,0.4)"},
+    agility:{l:"#3860a0",f:"rgba(56,96,160,",g:"rgba(56,96,160,0.4)"},
+    thieving:{l:"#a048a0",f:"rgba(160,72,160,",g:"rgba(160,72,160,0.4)"},
+    slayer:{l:"#686868",f:"rgba(104,104,104,",g:"rgba(104,104,104,0.4)"},
+    farming:{l:"#68a830",f:"rgba(104,168,48,",g:"rgba(104,168,48,0.4)"},
+    runecrafting:{l:"#c8b050",f:"rgba(200,176,80,",g:"rgba(200,176,80,0.4)"},
+    hunter:{l:"#707040",f:"rgba(112,112,64,",g:"rgba(112,112,64,0.4)"},
+    construction:{l:"#a07848",f:"rgba(160,120,72,",g:"rgba(160,120,72,0.4)"},
+    summoning:{l:"#3878a0",f:"rgba(56,120,160,",g:"rgba(56,120,160,0.4)"},
+    dungeoneering:{l:"#a05828",f:"rgba(160,88,40,",g:"rgba(160,88,40,0.4)"},
+    divination:{l:"#a070c8",f:"rgba(160,112,200,",g:"rgba(160,112,200,0.4)"},
+    invention:{l:"#c8b830",f:"rgba(200,184,48,",g:"rgba(200,184,48,0.4)"},
+    archaeology:{l:"#c87848",f:"rgba(200,120,72,",g:"rgba(200,120,72,0.4)"},
+    necromancy:{l:"#8848a0",f:"rgba(136,72,160,",g:"rgba(136,72,160,0.4)"},
+    com:{l:"#c8a84e",f:"rgba(200,168,78,",g:"rgba(200,168,78,0.4)"}
+  };
+  function skc(id){return skillcolors[id]||skillcolors.com;}
+
+  // ─── XP Table (RS3 levels 1-120 + virtual to 126) ───
+  var xpTable=[0,0,83,174,276,388,512,650,801,969,1154,1358,1584,1833,2107,2411,2746,3115,3523,3973,4470,5018,5624,6291,7028,7842,8740,9730,10824,12031,13363,14833,16456,18247,20224,22406,24815,27473,30408,33648,37224,41171,45529,50339,55649,61512,67983,75127,83014,91721,101333,111945,123660,136594,150872,166636,184040,203254,224466,247886,273742,302288,333804,368599,407015,449428,496254,547953,605032,668051,737627,814445,899257,992895,1096278,1210421,1336443,1475581,1629200,1798808,1986068,2192818,2421087,2673114,2951373,3258594,3597792,3972294,4385776,4842295,5346332,5902831,6517253,7195629,7944614,8771558,9684577,10692629,11805606,13034431,14391160,15889109,17542976,19368992,21385073,23611006,26068632,28782069,31777943,35085654,38737661,42769801,47221641,52136869,57563718,63555443,70170840,77474828,85539082,94442737,104273167];
+  function xpForLevel(lv){return lv<1?0:(lv>=xpTable.length?xpTable[xpTable.length-1]:xpTable[lv]);}
+  function levelForXp(xp){for(var i=1;i<xpTable.length;i++){if(xpTable[i]>xp)return i-1;}return xpTable.length-1;}
 
   // ─── State ───
-  var hist = {};
-  var reader = new XpcounterReader.XpcounterReader();
-  var measuretime = 0;
-  var graphtime = 0;
-  var currenttime = 0;
-  var trackedxp = 0;
-  var measurestart = Date.now();
-  var lastdraw = 0;
-  var lastchange = 0;
-  var findfails = 0;
-  var totalSessionXp = {};
+  var hist={},reader=new XpcounterReader.XpcounterReader();
+  var measuretime=0,graphtime=0,currenttime=0,trackedxp=0,measurestart=Date.now(),lastdraw=0,lastchange=0,findfails=0;
+  var totalSessionXp={},lastgraphstart=0,lastgraphend=0,lastgraphskill="";
+  var sparkData={};// sparkData[skill] = [{time,xp},...] for sparklines
+  var prevLevels={};// prevLevels[skill] = last known level for level-up detection
+  var prevXpMilestones={};// for 1M milestone detection
 
-  var lastgraphstart = 0;
-  var lastgraphend = 0;
-  var lastgraphskill = "";
+  // ─── Settings ───
+  var mode=localStorage.xpmeter_mode==="start"?"start":"fixed";
+  var fixedtime=+localStorage.xpmeter_sampletime||600000;
+  var afkAlertEnabled=localStorage.xpmeter_afk==="true";
+  var afkAlertTime=+localStorage.xpmeter_afktime||120000;
+  var skillid="";
+  var goals=JSON.parse(localStorage.xpmeter_goals||"{}");// goals[skill]={target:number,label:string}
+  var sessionHistory=JSON.parse(localStorage.xpmeter_history||"[]");
+  var notifLevelup=localStorage.xpmeter_notif_levelup!=="false";
+  var notifMilestone=localStorage.xpmeter_notif_milestone!=="false";
 
-  // ─── Settings (localStorage backed) ───
-  var mode = localStorage.xpmeter_mode === "start" ? "start" : "fixed";
-  var fixedtime = +localStorage.xpmeter_sampletime || 600000; // 10min
-  var afkAlertEnabled = localStorage.xpmeter_afk === "true";
-  var afkAlertTime = +localStorage.xpmeter_afktime || 120000; // 120s
-  var skillid = "";
-
-  // ─── Constants ───
-  var deletetime = 4 * 60 * 60 * 1000; // 4hrs
-  var cnv = null;
-  var ctx = null;
-
-  // ─── Tooltip / alert state ───
-  var tooltiptimeout = null;
-  var tooltipout = false;
-  var dropdownOpen = false;
+  var deletetime=4*60*60*1000,cnv=null,ctx=null;
+  var tooltiptimeout=null,tooltipout=false,dropdownOpen=false;
 
   // ─── Helpers ───
-  function elid(id) { return document.getElementById(id); }
-  function spacednr(n) {
-    if (isNaN(n) || !isFinite(n)) return "0";
-    n = Math.round(n);
-    var s = n.toString();
-    var r = "";
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 === 0) r += ",";
-      r += s[i];
-    }
-    return r;
-  }
-  function displaytime(ms) {
-    var t = Math.floor(ms / 1000);
-    var s = t % 60;
-    var m = Math.floor(t / 60) % 60;
-    var h = Math.floor(t / 3600);
-    var pad = function(n) { return n < 10 ? "0" + n : "" + n; };
-    if (h === 0) return m + ":" + pad(s);
-    return h + ":" + pad(m) + ":" + pad(s);
-  }
-  function floorx(v, step) { return Math.floor(v / step) * step; }
-  function iconoffset(id) {
-    var i = skillnames.indexOf(id);
-    if (id === "com") i = 31;
-    return i;
+  function elid(id){return document.getElementById(id);}
+  function spacednr(n){if(isNaN(n)||!isFinite(n))return"0";n=Math.round(n);var s=n.toString(),r="";for(var i=0;i<s.length;i++){if(i>0&&(s.length-i)%3===0)r+=",";r+=s[i];}return r;}
+  function shortxp(n){if(n>=1e6)return(n/1e6).toFixed(1)+"M";if(n>=1e3)return(n/1e3).toFixed(1)+"K";return Math.round(n).toString();}
+  function displaytime(ms){var t=Math.floor(ms/1000),s=t%60,m=Math.floor(t/60)%60,h=Math.floor(t/3600),p=function(n){return n<10?"0"+n:""+n;};if(h===0)return m+":"+p(s);return h+":"+p(m)+":"+p(s);}
+  function etaStr(ms){if(!isFinite(ms)||ms<=0)return"--";var h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);if(h>99)return">99h";if(h>0)return h+"h "+m+"m";return m+"m";}
+  function floorx(v,step){return Math.floor(v/step)*step;}
+  function iconoffset(id){var i=skillnames.indexOf(id);if(id==="com")i=31;return i;}
+
+  // ─── Notifications ───
+  function showNotif(msg,type){
+    var el=document.createElement("div");
+    el.className="notif "+type;
+    el.textContent=msg;
+    var box=elid("notifications");
+    box.appendChild(el);
+    // limit to 5
+    while(box.children.length>5)box.removeChild(box.firstChild);
+    setTimeout(function(){el.classList.add("out");setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},300);},3500);
   }
 
   // ─── Lifecycle ───
-  function start() {
-    if (typeof a1lib !== "undefined") {
-      a1lib.identifyUrl("./appconfig.json");
-    }
+  function start(){
+    if(typeof a1lib!=="undefined")a1lib.identifyUrl("./appconfig.json");
     resize();
-    cnv = elid("cnv");
-    ctx = cnv.getContext("2d");
-
-    // Apply saved settings to UI
-    var radios = document.querySelectorAll('input[name="mode"]');
-    radios.forEach(function(r) { r.checked = r.value === mode; });
-    elid("durationSlider").value = fixedtime / 60000;
-    elid("durationLabel").textContent = (fixedtime / 60000) + " min";
-    elid("afkToggle").checked = afkAlertEnabled;
-    elid("afkSlider").value = afkAlertTime / 1000;
-    elid("afkLabel").textContent = (afkAlertTime / 1000) + " s";
-
+    cnv=elid("cnv");ctx=cnv.getContext("2d");
+    var radios=document.querySelectorAll('input[name="mode"]');
+    radios.forEach(function(r){r.checked=r.value===mode;});
+    elid("durationSlider").value=fixedtime/60000;
+    elid("durationLabel").textContent=(fixedtime/60000)+" min";
+    elid("afkToggle").checked=afkAlertEnabled;
+    elid("afkSlider").value=afkAlertTime/1000;
+    elid("afkLabel").textContent=(afkAlertTime/1000)+" s";
+    elid("notifLevelup").checked=notifLevelup;
+    elid("notifMilestone").checked=notifMilestone;
+    drawHistoryPanel();
+    drawGoalsPanel();
     startFindCounter();
-    setInterval(tick, 1000);
+    setInterval(tick,1000);
     tick();
   }
 
-  function startFindCounter() {
-    setStatus("searching");
-    elid("ratebox").textContent = "Searching\u2026";
-    if (!reader.searching) { reader.pos = null; }
-    reader.findAsync(function () {
+  function startFindCounter(){
+    setStatus("searching");elid("ratebox").textContent="Searching\u2026";
+    if(!reader.searching)reader.pos=null;
+    reader.findAsync(function(){
       reader.read();
-      var found = false;
-      for (var a in reader.skills) { if (reader.values[a] > 0) found = true; }
-      if (!found) reader.pos = null;
-
-      if (!reader.pos) {
-        findfails++;
-        if (findfails >= 2) { setStatus("error"); elid("ratebox").textContent = "Not found"; }
-      } else {
-        findfails = 0;
-        setStatus("active");
-        if (typeof reader.showPosition === "function") reader.showPosition();
-      }
-      if (reader.rounded) xpcounterRoundError();
+      var found=false;for(var a in reader.skills)if(reader.values[a]>0)found=true;
+      if(!found)reader.pos=null;
+      if(!reader.pos){findfails++;if(findfails>=2){setStatus("error");elid("ratebox").textContent="Not found";}}
+      else{findfails=0;setStatus("active");if(typeof reader.showPosition==="function")reader.showPosition();}
+      if(reader.rounded)xpcounterRoundError();
       tick();
     });
   }
 
-  function tick() {
-    if (!reader.pos) {
-      if (reader.searching) {
-        setStatus("searching");
-        elid("ratebox").textContent = "Searching\u2026";
-      }
-      return;
+  function tick(){
+    if(!reader.pos){if(reader.searching){setStatus("searching");elid("ratebox").textContent="Searching\u2026";}return;}
+    currenttime=Date.now();fixintervals();reader.read();
+    if(!skillid&&reader.skills[0])skillid=reader.skills[0];
+    for(var a in hist)hist[a].visible=false;
+    for(var a=0;a<reader.skills.length;a++){
+      if(!reader.skills[a])continue;if(reader.values[a]===-1)continue;
+      skillread(reader.skills[a],reader.values[a],currenttime);
+      if(hist[reader.skills[a]])hist[reader.skills[a]].visible=true;
     }
-
-    currenttime = Date.now();
-    fixintervals();
-    reader.read();
-    if (!skillid && reader.skills[0]) skillid = reader.skills[0];
-
-    for (var a in hist) hist[a].visible = false;
-    for (var a = 0; a < reader.skills.length; a++) {
-      if (!reader.skills[a]) continue;
-      if (reader.values[a] === -1) continue;
-      skillread(reader.skills[a], reader.values[a], currenttime);
-      if (hist[reader.skills[a]]) hist[reader.skills[a]].visible = true;
-    }
-
-    drawmeter();
-    drawgraph();
-    fixAfkAlert();
-    updateXpGained();
+    drawmeter();drawgraph();fixAfkAlert();updateXpGained();
   }
 
-  // ─── Core: skill reading (from original) ───
-  function skillread(skill, xp, time) {
-    if (!hist[skill]) {
-      hist[skill] = { id: skill, offcount: 0, data: [], visible: true };
-    }
-    var obj = hist[skill];
-    var last = obj.data[obj.data.length - 1];
-    if (!last) last = { xp: 0, time: 0 };
-
-    var dxp = xp - last.xp;
-    if (dxp === 0) return;
-
-    var expected = dxp > 0 && dxp < 200000;
-    if (last.xp === 0 || obj.offcount > 10 || expected) {
-      if (!expected && dxp !== 0) {
-        for (var b = 0; b < obj.data.length; b++) obj.data[b].xp += dxp;
+  // ─── Core: skill reading ───
+  function skillread(skill,xp,time){
+    if(!hist[skill])hist[skill]={id:skill,offcount:0,data:[],visible:true};
+    var obj=hist[skill],last=obj.data[obj.data.length-1];
+    if(!last)last={xp:0,time:0};
+    var dxp=xp-last.xp;if(dxp===0)return;
+    var expected=dxp>0&&dxp<200000;
+    if(last.xp===0||obj.offcount>10||expected){
+      if(!expected&&dxp!==0){for(var b=0;b<obj.data.length;b++)obj.data[b].xp+=dxp;}
+      obj.data.push({xp:xp,time:time});obj.offcount=0;
+      if(expected&&dxp>0){
+        if(!totalSessionXp[skill])totalSessionXp[skill]=0;
+        totalSessionXp[skill]+=dxp;
+        // Sparkline data
+        if(!sparkData[skill])sparkData[skill]=[];
+        sparkData[skill].push({time:time,rate:0});// rate filled in drawmeter
+        if(sparkData[skill].length>30)sparkData[skill].shift();
+        // Level-up detection
+        checkLevelUp(skill,xp);
+        // Milestone detection
+        checkMilestone(skill);
       }
-      obj.data.push({ xp: xp, time: time });
-      obj.offcount = 0;
-
-      // Track session totals
-      if (expected && dxp > 0) {
-        if (!totalSessionXp[skill]) totalSessionXp[skill] = 0;
-        totalSessionXp[skill] += dxp;
-      }
-    } else {
-      obj.offcount++;
-    }
-    if (skill === skillid && dxp !== 0) lastchange = currenttime;
+    }else{obj.offcount++;}
+    if(skill===skillid&&dxp!==0)lastchange=currenttime;
   }
 
-  // ─── Rate calculation (from original) ───
-  function calcmeter(histData, doclusters, time) {
-    var xpgain = 0;
-    var clusters = [];
-    var ms = time - measuretime;
-    var ds = time - deletetime;
-    for (var a = 0; a < histData.length; a++) {
-      var last = histData[a === 0 ? 0 : a - 1];
-      var pnt = histData[a];
-      if (pnt.time < ds) { histData.splice(a, 1); a--; continue; }
-      if (pnt.time < ms) continue;
-      var dxp = pnt.xp - last.xp;
-      xpgain += dxp;
-      if (doclusters && dxp >= 1) {
-        var found = false;
-        for (var b = 0; b < clusters.length; b++) {
-          if (Math.abs(clusters[b].xp - dxp) < dxp / 50 + 1) {
-            clusters[b].n++;
-            clusters[b].mass += dxp;
-            clusters[b].xp = (clusters[b].xp * (clusters[b].n - 1) + dxp) / clusters[b].n;
-            found = true;
-            break;
-          }
-        }
-        if (!found) clusters.push({ n: 1, xp: dxp, mass: dxp });
-      }
+  function checkLevelUp(skill,xp){
+    if(!notifLevelup)return;
+    var lv=levelForXp(xp);
+    if(prevLevels[skill]!==undefined&&lv>prevLevels[skill]){
+      showNotif(skill.charAt(0).toUpperCase()+skill.slice(1)+" level "+lv+"!","gold");
     }
-    if (doclusters) {
-      clusters.sort(function(a, b) { return a.xp - b.xp; });
-      for (var a = clusters.length - 1; a >= 0; a--) {
-        combinecluster(clusters[a].xp, clusters[a], clusters, 0);
-      }
-      clusters.sort(function(a, b) { return b.n - a.n; });
-    }
-    var xprate = measuretime > 0 ? xpgain * 3600000 / measuretime : 0;
-    return { xpgain: xpgain, xprate: xprate, clusters: clusters };
+    prevLevels[skill]=lv;
   }
 
-  function combinecluster(xp, cl, cls, layer) {
-    if (xp < 5 || layer > 2) return false;
-    for (var b = cls.indexOf(cl); b >= 0; b--) {
-      if (cls[b].n / 7 < cl.n) continue;
-      var c = Math.round(xp / cls[b].xp);
-      if (Math.abs(c * cls[b].xp - xp) < xp / 50 + 1) {
-        cls[b].n += c * cl.n;
-        cls[b].mass += c * xp;
-        cls.splice(cls.indexOf(cl), 1);
-        return true;
-      }
+  function checkMilestone(skill){
+    if(!notifMilestone)return;
+    var total=totalSessionXp[skill]||0;
+    var milestone=Math.floor(total/1000000);
+    var prev=prevXpMilestones[skill]||0;
+    if(milestone>prev){
+      showNotif(skill.charAt(0).toUpperCase()+skill.slice(1)+": "+milestone+"M xp gained!","green");
+      prevXpMilestones[skill]=milestone;
     }
   }
 
-  function fixintervals() {
-    if (mode === "fixed") measuretime = fixedtime;
-    if (mode === "start") measuretime = currenttime - measurestart;
-    measuretime = Math.min(measuretime, deletetime);
-    graphtime = 300;
-    while (measuretime / 80 > graphtime) graphtime *= 2;
+  // ─── Rate calculation ───
+  function calcmeter(histData,doclusters,time){
+    var xpgain=0,clusters=[],ms=time-measuretime,ds=time-deletetime;
+    for(var a=0;a<histData.length;a++){
+      var last=histData[a===0?0:a-1],pnt=histData[a];
+      if(pnt.time<ds){histData.splice(a,1);a--;continue;}
+      if(pnt.time<ms)continue;
+      var dxp=pnt.xp-last.xp;xpgain+=dxp;
+      if(doclusters&&dxp>=1){
+        var found=false;
+        for(var b=0;b<clusters.length;b++){if(Math.abs(clusters[b].xp-dxp)<dxp/50+1){clusters[b].n++;clusters[b].mass+=dxp;clusters[b].xp=(clusters[b].xp*(clusters[b].n-1)+dxp)/clusters[b].n;found=true;break;}}
+        if(!found)clusters.push({n:1,xp:dxp,mass:dxp});
+      }
+    }
+    if(doclusters){clusters.sort(function(a,b){return a.xp-b.xp;});for(var a=clusters.length-1;a>=0;a--)combinecluster(clusters[a].xp,clusters[a],clusters,0);clusters.sort(function(a,b){return b.n-a.n;});}
+    var xprate=measuretime>0?xpgain*3600000/measuretime:0;
+    return{xpgain:xpgain,xprate:xprate,clusters:clusters};
   }
+  function combinecluster(xp,cl,cls,layer){if(xp<5||layer>2)return;for(var b=cls.indexOf(cl);b>=0;b--){if(cls[b].n/7<cl.n)continue;var c=Math.round(xp/cls[b].xp);if(Math.abs(c*cls[b].xp-xp)<xp/50+1){cls[b].n+=c*cl.n;cls[b].mass+=c*xp;cls.splice(cls.indexOf(cl),1);return true;}}}
+  function fixintervals(){if(mode==="fixed")measuretime=fixedtime;if(mode==="start")measuretime=currenttime-measurestart;measuretime=Math.min(measuretime,deletetime);graphtime=300;while(measuretime/80>graphtime)graphtime*=2;}
 
   // ─── Drawing ───
-  function drawmeter() {
-    var histobj = hist[skillid];
-    if (!histobj) {
-      elid("ratebox").textContent = "0 xp/hr";
-      setSkillIcon(-1);
-      return;
-    }
+  function drawmeter(){
+    var histobj=hist[skillid];
+    if(!histobj){elid("ratebox").textContent="0 xp/hr";setSkillIcon(-1);return;}
     setStatus("active");
-    var rate = calcmeter(histobj.data, true, currenttime);
-    elid("ratebox").textContent = spacednr(rate.xprate) + " xp/hr";
+    var rate=calcmeter(histobj.data,true,currenttime);
+    var sc=skc(skillid);
+    elid("ratebox").textContent=spacednr(rate.xprate)+" xp/hr";
+    elid("ratebox").style.color=sc.l;
+    elid("ratebox").style.textShadow="0 0 8px "+sc.g+", 0 1px 3px rgba(0,0,0,0.7)";
     setSkillIcon(skillid);
-    elid("sessiontime").textContent = displaytime(measuretime);
-
-    // Update breakdown panel
+    elid("sessiontime").textContent=displaytime(measuretime);
     drawBreakdown(rate.clusters);
-
-    // Update tracked xp
-    if (trackedxp) {
-      for (var a = 0; a < rate.clusters.length; a++) {
-        if (Math.abs(rate.clusters[a].xp - trackedxp) < trackedxp / 50 + 1) {
-          elid("tracked").style.display = "block";
-          elid("tracked").textContent = rate.clusters[a].n + "x " + trackedxp.toFixed(1) + " xp";
-          break;
-        }
-      }
+    if(trackedxp){for(var a=0;a<rate.clusters.length;a++){if(Math.abs(rate.clusters[a].xp-trackedxp)<trackedxp/50+1){elid("tracked").style.display="block";elid("tracked").textContent=rate.clusters[a].n+"\u00d7 "+trackedxp.toFixed(1)+" xp";break;}}}
+    // Update sparkline rates for all skills
+    for(var s in hist){
+      if(!hist[s].visible)continue;
+      var r=calcmeter(hist[s].data,false,currenttime);
+      if(sparkData[s]&&sparkData[s].length>0)sparkData[s][sparkData[s].length-1].rate=r.xprate;
     }
-
-    // Update skills panel
     drawSkillsPanel();
-
-    lastdraw = currenttime;
+    drawGoalsPanel();
+    lastdraw=currenttime;
   }
 
-  function drawSkillsPanel() {
-    var panel = elid("skillspanel");
-    var html = "";
-    for (var a in hist) {
-      if (!hist[a].visible) continue;
-      var rate = calcmeter(hist[a].data, false, currenttime);
-      var sel = a === skillid ? " selected" : "";
-      var off = iconoffset(a);
-      var total = totalSessionXp[a] || 0;
-      html += "<div class='skillrow" + sel + "' onclick='setcounter(\"" + a + "\")'>";
-      html += "<div class='skillrow-icon' style='background-position:0px " + (-18 * off) + "px'></div>";
-      html += "<div class='skillrow-name'>" + a + "</div>";
-      html += "<div class='skillrow-rate'>" + spacednr(rate.xprate) + "/hr</div>";
-      if (total > 0) {
-        html += "<div class='skillrow-xp'>+" + spacednr(total) + "</div>";
+  function drawSkillsPanel(){
+    var panel=elid("skillspanel"),html="";
+    for(var a in hist){
+      if(!hist[a].visible)continue;
+      var rate=calcmeter(hist[a].data,false,currenttime);
+      var sel=a===skillid?" selected":"",off=iconoffset(a),total=totalSessionXp[a]||0,c=skc(a);
+      html+="<div class='skillrow"+sel+"' onclick='setcounter(\""+a+"\")'>";
+      html+="<div class='skillrow-icon' style='background-position:0px "+(-16*off)+"px'></div>";
+      html+="<div class='skillrow-name'>"+a+"</div>";
+      // Sparkline canvas
+      html+="<canvas class='skillrow-spark' data-skill='"+a+"' width='44' height='14'></canvas>";
+      html+="<div class='skillrow-rate' style='color:"+c.l+"'>"+spacednr(rate.xprate)+"/hr</div>";
+      if(total>0)html+="<div class='skillrow-xp'>+"+shortxp(total)+"</div>";
+      html+="</div>";
+    }
+    if(!html)html="<div class='empty-state'>No skills detected yet</div>";
+    panel.innerHTML=html;
+    // Draw sparklines
+    var canvases=panel.querySelectorAll(".skillrow-spark");
+    canvases.forEach(function(cvs){drawSparkline(cvs,cvs.getAttribute("data-skill"));});
+  }
+
+  function drawSparkline(cvs,skill){
+    var sd=sparkData[skill];if(!sd||sd.length<2)return;
+    var c=cvs.getContext("2d"),w=44,h=14;
+    var rates=sd.map(function(p){return p.rate;});
+    var max=Math.max.apply(null,rates),min=0;
+    if(max<=0)return;
+    var sc=skc(skill);
+    // Trend detection
+    var recent=rates.slice(-Math.ceil(rates.length/3));
+    var older=rates.slice(0,Math.ceil(rates.length/3));
+    var avgRecent=recent.reduce(function(a,b){return a+b;},0)/recent.length;
+    var avgOlder=older.reduce(function(a,b){return a+b;},0)/older.length;
+    var color=sc.l;
+    if(avgRecent>avgOlder*1.03)color="#5b9b3e";// trending up
+    else if(avgRecent<avgOlder*0.97)color="#9b3e3e";// trending down
+
+    c.globalAlpha=0.85;
+    c.strokeStyle=color;c.lineWidth=1.5;c.lineJoin="round";c.beginPath();
+    for(var i=0;i<rates.length;i++){
+      var x=i/(rates.length-1)*w,y=(h-1)-(rates[i]-min)/(max-min)*(h-2);
+      if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
+    }
+    c.stroke();
+    // Current value dot
+    c.fillStyle=color;c.beginPath();
+    c.arc(w,(h-1)-(rates[rates.length-1]-min)/(max-min)*(h-2),2,0,Math.PI*2);
+    c.fill();
+  }
+
+  function drawBreakdown(clusters){
+    var panel=elid("breakdownpanel"),html="";
+    if(!clusters||clusters.length===0){html="<div class='empty-state'>No XP drops recorded yet</div>";}
+    else{for(var a=0;a<clusters.length;a++){html+="<div class='bdrow'><div class='bdrow-xp'>"+clusters[a].xp.toFixed(1)+" xp</div><div class='bdrow-n'>"+clusters[a].n+"\u00d7</div><div class='bdrow-track' onclick='trackxp("+clusters[a].xp+")' title='Track'>\u25C9</div></div>";}}
+    panel.innerHTML=html;
+  }
+
+  // ─── Goals panel ───
+  function drawGoalsPanel(){
+    var panel=elid("goalspanel"),html="";
+    for(var skill in goals){
+      if(!goals[skill])continue;
+      var g=goals[skill],off=iconoffset(skill),c=skc(skill);
+      var currentXp=0;
+      if(hist[skill]&&hist[skill].data.length>0)currentXp=hist[skill].data[hist[skill].data.length-1].xp;
+      var pct=g.target>0?Math.min(100,(currentXp/g.target)*100):0;
+      var remaining=Math.max(0,g.target-currentXp);
+      var rate=0;
+      if(hist[skill])rate=calcmeter(hist[skill].data,false,currenttime).xprate;
+      var eta=rate>0?(remaining/rate*3600000):Infinity;
+      html+="<div class='goalrow'>";
+      html+="<div class='goalrow-header'>";
+      html+="<div class='goalrow-icon' style='background-position:0px "+(-16*off)+"px'></div>";
+      html+="<div class='goalrow-name'>"+skill+"</div>";
+      html+="<div class='goalrow-target'>"+g.label+"</div>";
+      html+="<div class='goalrow-eta'>"+etaStr(eta)+"</div>";
+      html+="<div class='goal-remove' onclick='removeGoal(\""+skill+"\")'>\u2715</div>";
+      html+="</div>";
+      html+="<div class='goal-bar'><div class='goal-fill' style='width:"+pct+"%;background:"+c.l+"'></div></div>";
+      html+="<div class='goal-pct'>"+pct.toFixed(1)+"% \u2022 "+shortxp(remaining)+" remaining</div>";
+      html+="</div>";
+    }
+    // Add goal button
+    html+="<div class='goal-add' onclick='openGoalPopup()'>+ Add Goal</div>";
+    panel.innerHTML=html;
+  }
+
+  function openGoalPopup(){
+    var popup=elid("goalpopup"),opts=elid("goalpopup-opts");
+    var html="";
+    for(var a in hist){
+      if(!hist[a].visible)continue;
+      html+="<div class='popup-opt' onclick='openGoalTargets(\""+a+"\")'>"+a.charAt(0).toUpperCase()+a.slice(1)+"</div>";
+    }
+    if(!html)html="<div class='empty-state'>No active skills</div>";
+    opts.innerHTML=html;
+    elid("goalpopup-title").textContent="Set Goal";
+    popup.classList.add("open");
+  }
+
+  function openGoalTargets(skill){
+    var opts=elid("goalpopup-opts");
+    var currentXp=0;
+    if(hist[skill]&&hist[skill].data.length>0)currentXp=hist[skill].data[hist[skill].data.length-1].xp;
+    var lv=levelForXp(currentXp);
+    var targets=[
+      {label:"Level "+(lv+1),xp:xpForLevel(lv+1)},
+      {label:"Level 99",xp:xpForLevel(99)},
+      {label:"Level 120",xp:xpForLevel(120)},
+      {label:"200M XP",xp:200000000}
+    ];
+    elid("goalpopup-title").textContent=skill.charAt(0).toUpperCase()+skill.slice(1)+" Goal";
+    var html="";
+    for(var i=0;i<targets.length;i++){
+      var done=currentXp>=targets[i].xp;
+      html+="<div class='popup-opt"+(done?" disabled":"")+"' "+(done?"":"onclick='setGoal(\""+skill+"\","+targets[i].xp+",\""+targets[i].label+"\")'")+">";
+      html+=targets[i].label+" ("+shortxp(targets[i].xp)+")"+(done?" \u2713":"");
+      html+="</div>";
+    }
+    opts.innerHTML=html;
+  }
+
+  function setGoal(skill,target,label){
+    goals[skill]={target:target,label:label};
+    localStorage.xpmeter_goals=JSON.stringify(goals);
+    closeGoalPopup();
+    drawGoalsPanel();
+  }
+  function removeGoal(skill){delete goals[skill];localStorage.xpmeter_goals=JSON.stringify(goals);drawGoalsPanel();}
+  function closeGoalPopup(){elid("goalpopup").classList.remove("open");}
+
+  // ─── Session history ───
+  function saveSession(){
+    var summary={date:Date.now(),duration:measuretime,skills:{}};
+    for(var s in totalSessionXp){
+      if(totalSessionXp[s]>0){
+        var rate=hist[s]?calcmeter(hist[s].data,false,currenttime).xprate:0;
+        summary.skills[s]={xp:totalSessionXp[s],rate:Math.round(rate)};
       }
-      html += "</div>";
     }
-    if (!html) html = "<div style='padding:12px;font-size:12px;color:rgba(255,255,255,0.3);text-align:center;'>No skills detected yet</div>";
-    panel.innerHTML = html;
+    if(Object.keys(summary.skills).length===0){showNotif("No XP data to save","amber");return;}
+    sessionHistory.unshift(summary);
+    if(sessionHistory.length>20)sessionHistory.pop();
+    localStorage.xpmeter_history=JSON.stringify(sessionHistory);
+    drawHistoryPanel();
+    showNotif("Session saved!","gold");
   }
 
-  function drawBreakdown(clusters) {
-    var panel = elid("breakdownpanel");
-    var html = "";
-    if (!clusters || clusters.length === 0) {
-      html = "<div style='padding:12px;font-size:12px;color:rgba(255,255,255,0.3);text-align:center;'>No XP drops recorded yet</div>";
-    } else {
-      for (var a = 0; a < clusters.length; a++) {
-        html += "<div class='bdrow'>";
-        html += "<div class='bdrow-xp'>" + clusters[a].xp.toFixed(1) + " xp</div>";
-        html += "<div class='bdrow-n'>" + clusters[a].n + "x</div>";
-        html += "<div class='bdrow-track' onclick='trackxp(" + clusters[a].xp + ")' title='Track this drop'>\u25C9</div>";
-        html += "</div>";
+  function drawHistoryPanel(){
+    var panel=elid("historypanel"),html="";
+    if(sessionHistory.length===0){html="<div class='empty-state'>No saved sessions yet</div>";}
+    else{
+      for(var i=0;i<sessionHistory.length;i++){
+        var s=sessionHistory[i];
+        var d=new Date(s.date);
+        var dateStr=d.toLocaleDateString()+" "+d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+        var totalXp=0;for(var sk in s.skills)totalXp+=s.skills[sk].xp;
+        html+="<div class='histrow'>";
+        html+="<div class='histrow-date'>"+dateStr+" \u2022 "+displaytime(s.duration)+"</div>";
+        html+="<div class='histrow-stats'>";
+        html+="<div class='histrow-stat'>XP: <span>"+shortxp(totalXp)+"</span></div>";
+        var topSkill="";var topRate=0;
+        for(var sk in s.skills){if(s.skills[sk].rate>topRate){topRate=s.skills[sk].rate;topSkill=sk;}}
+        if(topSkill)html+="<div class='histrow-stat'>Top: <span>"+topSkill+" "+spacednr(topRate)+"/hr</span></div>";
+        html+="</div></div>";
       }
     }
-    panel.innerHTML = html;
+    panel.innerHTML=html;
   }
 
-  function drawgraph(isResizing) {
-    if (!ctx) return;
-    var startx = floorx(currenttime - measuretime, graphtime);
-    var endx = floorx(currenttime - graphtime, graphtime);
-    if (!isResizing && startx === lastgraphstart && endx === lastgraphend && skillid === lastgraphskill) return;
-    if (!hist[skillid]) return;
+  // ─── Graph drawing ───
+  function drawgraph(isResizing){
+    if(!ctx)return;
+    var startx=floorx(currenttime-measuretime,graphtime);
+    var endx=floorx(currenttime-graphtime,graphtime);
+    if(!isResizing&&startx===lastgraphstart&&endx===lastgraphend&&skillid===lastgraphskill)return;
+    if(!hist[skillid])return;
+    var w=cnv.offsetWidth,h=cnv.offsetHeight;
+    if(h<20||w<20){cnv.style.visibility="hidden";return;}
+    cnv.style.visibility="visible";cnv.width=w;cnv.height=h;
+    var data=calcGraph(hist[skillid],startx,endx,graphtime);
+    var graph=data.graph,max=Math.max(data.max,1);
+    var sc=skc(skillid);
 
-    var w = cnv.offsetWidth;
-    var h = cnv.offsetHeight;
-    if (h < 20 || w < 20) { cnv.style.visibility = "hidden"; return; }
-    cnv.style.visibility = "visible";
-    cnv.width = w;
-    cnv.height = h;
+    ctx.fillStyle="#1c1812";ctx.fillRect(0,0,w,h);
+    // Grid
+    ctx.strokeStyle="rgba(75,62,38,0.2)";ctx.lineWidth=1;
+    for(var i=1;i<4;i++){var gy=h*i/4;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(w,gy);ctx.stroke();}
+    if(graph.length>2){var vStep=Math.max(1,Math.floor(graph.length/6));for(var i=vStep;i<graph.length;i+=vStep){var vx=(graph[i].t-startx)/(endx-startx)*w;ctx.beginPath();ctx.moveTo(vx,0);ctx.lineTo(vx,h);ctx.stroke();}}
 
-    var data = calcGraph(hist[skillid], startx, endx, graphtime);
-    var graph = data.graph;
-    var max = Math.max(data.max, 1);
+    if(graph.length>1){
+      var grad=ctx.createLinearGradient(0,0,0,h);
+      grad.addColorStop(0,sc.f+"0.2)");grad.addColorStop(0.7,sc.f+"0.04)");grad.addColorStop(1,sc.f+"0)");
+      ctx.fillStyle=grad;ctx.beginPath();
+      ctx.moveTo((graph[0].t-startx)/(endx-startx)*w,h);
+      for(var a=0;a<graph.length;a++)ctx.lineTo((graph[a].t-startx)/(endx-startx)*w,(h-2)-(graph[a].v)/max*(h-6));
+      ctx.lineTo((graph[graph.length-1].t-startx)/(endx-startx)*w,h);ctx.closePath();ctx.fill();
 
-    // Background grid
-    ctx.strokeStyle = "rgba(255,255,255,0.05)";
-    ctx.lineWidth = 1;
-    for (var i = 1; i < 4; i++) {
-      var gy = h * i / 4;
-      ctx.beginPath();
-      ctx.moveTo(0, gy);
-      ctx.lineTo(w, gy);
-      ctx.stroke();
+      ctx.shadowColor=sc.g;ctx.shadowBlur=6;ctx.strokeStyle=sc.l;ctx.lineWidth=2;ctx.lineJoin="round";ctx.lineCap="round";ctx.beginPath();
+      for(var a=0;a<graph.length;a++)ctx.lineTo((graph[a].t-startx)/(endx-startx)*w,(h-2)-(graph[a].v)/max*(h-6));
+      ctx.stroke();ctx.shadowBlur=0;
+
+      if(graph.length<40){ctx.fillStyle=sc.l;for(var a=0;a<graph.length;a++){if(graph[a].v>0){var px=(graph[a].t-startx)/(endx-startx)*w,py=(h-2)-(graph[a].v)/max*(h-6);ctx.beginPath();ctx.arc(px,py,2.5,0,Math.PI*2);ctx.fill();}}}
     }
+    ctx.strokeStyle="rgba(61,49,34,0.6)";ctx.lineWidth=1;ctx.strokeRect(0.5,0.5,w-1,h-1);
+    lastgraphstart=startx;lastgraphend=endx;lastgraphskill=skillid;
+  }
 
-    // Gradient fill
-    if (graph.length > 1) {
-      var grad = ctx.createLinearGradient(0, 0, 0, h);
-      grad.addColorStop(0, "rgba(225,187,52,0.25)");
-      grad.addColorStop(1, "rgba(225,187,52,0.02)");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.moveTo((graph[0].t - startx) / (endx - startx) * w, h);
-      for (var a = 0; a < graph.length; a++) {
-        ctx.lineTo((graph[a].t - startx) / (endx - startx) * w, (h - 2) - (graph[a].v) / max * (h - 4));
-      }
-      ctx.lineTo((graph[graph.length - 1].t - startx) / (endx - startx) * w, h);
-      ctx.closePath();
-      ctx.fill();
+  function calcGraph(counter,startx,endx,graphstep){
+    var min=Infinity,max=-Infinity,graph=[],last=-1,lastindex=0;
+    for(var a=0;a<counter.data.length;a++){if(counter.data[a].time>startx&&last!==-1)break;last=counter.data[a].xp;lastindex=a;}
+    for(var bound=startx;bound<=endx;bound+=graphstep){
+      var b=last;for(var a=lastindex;a<counter.data.length;a++){if(counter.data[a].time<=bound)continue;if(counter.data[a].time>bound+graphstep)break;b=counter.data[a].xp;lastindex=0;}
+      b-=last;last=last+b;if(b>max)max=b;if(b<min)min=b;graph.push({t:bound,v:b});
     }
-
-    // Line
-    ctx.strokeStyle = "#e1bb34";
-    ctx.lineWidth = 2;
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    for (var a = 0; a < graph.length; a++) {
-      ctx.lineTo((graph[a].t - startx) / (endx - startx) * w, (h - 2) - (graph[a].v) / max * (h - 4));
-    }
-    ctx.stroke();
-
-    lastgraphstart = startx;
-    lastgraphend = endx;
-    lastgraphskill = skillid;
+    return{graph:graph,min:min,max:max,step:graphstep};
   }
 
-  function calcGraph(counter, startx, endx, graphstep) {
-    var min = Infinity, max = -Infinity;
-    var graph = [];
-    var last = -1, lastindex = 0;
-    for (var a = 0; a < counter.data.length; a++) {
-      if (counter.data[a].time > startx && last !== -1) break;
-      last = counter.data[a].xp;
-      lastindex = a;
-    }
-    for (var bound = startx; bound <= endx; bound += graphstep) {
-      var b = last;
-      for (var a = lastindex; a < counter.data.length; a++) {
-        if (counter.data[a].time <= bound) continue;
-        if (counter.data[a].time > bound + graphstep) break;
-        b = counter.data[a].xp;
-        lastindex = 0;
-      }
-      b -= last;
-      last = last + b;
-      if (b > max) max = b;
-      if (b < min) min = b;
-      graph.push({ t: bound, v: b });
-    }
-    return { graph: graph, min: min, max: max, step: graphstep };
+  // ─── UI ───
+  function setSkillIcon(id){var el=elid("skillicon"),off=typeof id==="string"?iconoffset(id):id;if(off===-1||off===undefined){el.style.display="none";}else{el.style.backgroundPosition="0px "+(-22*off)+"px";el.style.display="block";}}
+  function setStatus(s){elid("statusdot").className=s;}
+  function updateXpGained(){var total=0;for(var k in totalSessionXp)total+=totalSessionXp[k];if(total>0)elid("xpgained").textContent="+"+shortxp(total);}
+
+  function switchTab(el){
+    document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});
+    document.querySelectorAll(".panel").forEach(function(p){p.classList.remove("active");});
+    el.classList.add("active");elid(el.getAttribute("data-tab")).classList.add("active");
+    if(el.getAttribute("data-tab")==="graphpanel")resize();
   }
 
-  // ─── UI interactions ───
-  function setSkillIcon(id) {
-    var el = elid("skillicon");
-    var off = typeof id === "string" ? iconoffset(id) : id;
-    if (off === -1 || off === undefined) {
-      el.style.display = "none";
-    } else {
-      el.style.backgroundPosition = "0px " + (-24 * off) + "px";
-      el.style.display = "block";
-    }
+  function toggleSkillDropdown(){
+    if(!reader.pos){startFindCounter();return;}
+    dropdownOpen=!dropdownOpen;var dd=elid("skilldropdown");
+    if(dropdownOpen){
+      dd.classList.add("open");var html="";
+      for(var a in hist){if(!hist[a].visible||a===skillid)continue;var off=iconoffset(a),rate=calcmeter(hist[a].data,false,currenttime),c=skc(a);
+        html+="<div class='skillrow' onclick='setcounter(\""+a+"\");toggleSkillDropdown();'><div class='skillrow-icon' style='background-position:0px "+(-16*off)+"px'></div><div class='skillrow-name'>"+a+"</div><div class='skillrow-rate' style='color:"+c.l+"'>"+spacednr(rate.xprate)+"/hr</div></div>";}
+      if(!html)html="<div class='empty-state'>No other skills</div>";dd.innerHTML=html;
+    }else{dd.classList.remove("open");}
   }
 
-  function setStatus(status) {
-    var dot = elid("statusdot");
-    dot.className = status;
+  function setcounter(id){skillid=id;dropdownOpen=false;elid("skilldropdown").classList.remove("open");drawmeter();drawgraph(true);}
+  function trackxp(xp){trackedxp=xp;if(!xp)elid("tracked").style.display="none";drawmeter();}
+  function resize(){drawgraph(true);}
+
+  // ─── Controls ───
+  function setMode(m){mode=m;localStorage.xpmeter_mode=m;fixintervals();drawmeter();drawgraph(true);}
+  function clickTimer(){setMode(mode==="fixed"?"start":"fixed");document.querySelectorAll('input[name="mode"]').forEach(function(r){r.checked=r.value===mode;});}
+  function dblClickTimer(){measurestart=Date.now()-1;setMode("start");}
+  function resetStartPoint(){measurestart=Date.now()-1;totalSessionXp={};prevXpMilestones={};elid("xpgained").textContent="";fixintervals();drawmeter();drawgraph(true);}
+  function setFixedDuration(min){fixedtime=min*60000;localStorage.xpmeter_sampletime=fixedtime;elid("durationLabel").textContent=min+" min";fixintervals();drawmeter();drawgraph(true);}
+  function toggleAfkAlert(){afkAlertEnabled=elid("afkToggle").checked;localStorage.xpmeter_afk=afkAlertEnabled?"true":"false";fixAfkAlert();}
+  function setAfkTime(sec){afkAlertTime=sec*1000;localStorage.xpmeter_afktime=afkAlertTime;elid("afkLabel").textContent=sec+" s";}
+  function saveNotifSettings(){notifLevelup=elid("notifLevelup").checked;notifMilestone=elid("notifMilestone").checked;localStorage.xpmeter_notif_levelup=notifLevelup;localStorage.xpmeter_notif_milestone=notifMilestone;}
+  function clearAllData(){localStorage.removeItem("xpmeter_goals");localStorage.removeItem("xpmeter_history");goals={};sessionHistory=[];drawGoalsPanel();drawHistoryPanel();showNotif("Data cleared","amber");}
+
+  function fixAfkAlert(){
+    if(!afkAlertEnabled||!lastchange){if(tooltipout&&typeof alt1!=="undefined"){alt1.clearTooltip();tooltipout=false;}if(tooltiptimeout){clearTimeout(tooltiptimeout);tooltiptimeout=null;}return;}
+    var next=lastchange+afkAlertTime;if(tooltiptimeout){clearTimeout(tooltiptimeout);tooltiptimeout=null;}
+    if(next<=Date.now()){if(!tooltipout){if(typeof alt1!=="undefined")alt1.setTooltip("No XP gained! Check RuneScape");setStatus("afk");tooltipout=true;}}
+    else{if(tooltipout){if(typeof alt1!=="undefined")alt1.clearTooltip();tooltipout=false;setStatus("active");}tooltiptimeout=setTimeout(fixAfkAlert,next-Date.now()+50);}
   }
 
-  function updateXpGained() {
-    var total = 0;
-    for (var k in totalSessionXp) total += totalSessionXp[k];
-    if (total > 0) {
-      elid("xpgained").textContent = "+" + spacednr(total);
-    }
-  }
-
-  function switchTab(el) {
-    var tabs = document.querySelectorAll(".tab");
-    var panels = document.querySelectorAll(".panel");
-    tabs.forEach(function(t) { t.classList.remove("active"); });
-    panels.forEach(function(p) { p.classList.remove("active"); });
-    el.classList.add("active");
-    elid(el.getAttribute("data-tab")).classList.add("active");
-    if (el.getAttribute("data-tab") === "graphpanel") {
-      resize();
-    }
-  }
-
-  function toggleSkillDropdown() {
-    if (!reader.pos) {
-      startFindCounter();
-      return;
-    }
-    dropdownOpen = !dropdownOpen;
-    var dd = elid("skilldropdown");
-    if (dropdownOpen) {
-      dd.classList.add("open");
-      var html = "";
-      for (var a in hist) {
-        if (!hist[a].visible || a === skillid) continue;
-        var off = iconoffset(a);
-        var rate = calcmeter(hist[a].data, false, currenttime);
-        html += "<div class='skillrow' onclick='setcounter(\"" + a + "\"); toggleSkillDropdown();'>";
-        html += "<div class='skillrow-icon' style='background-position:0px " + (-18 * off) + "px'></div>";
-        html += "<div class='skillrow-name'>" + a + "</div>";
-        html += "<div class='skillrow-rate'>" + spacednr(rate.xprate) + "/hr</div>";
-        html += "</div>";
-      }
-      if (!html) html = "<div style='padding:8px;font-size:11px;color:#666;text-align:center;'>No other skills</div>";
-      dd.innerHTML = html;
-    } else {
-      dd.classList.remove("open");
-    }
-  }
-
-  function setcounter(id) {
-    skillid = id;
-    dropdownOpen = false;
-    elid("skilldropdown").classList.remove("open");
-    drawmeter();
-    drawgraph(true);
-  }
-
-  function trackxp(xp) {
-    trackedxp = xp;
-    if (!xp) {
-      elid("tracked").style.display = "none";
-    }
-    drawmeter();
-  }
-
-  function resize() {
-    // Compute panel area
-    var topbar = elid("topbar");
-    var tabbar = elid("tabbar");
-    var panelTop = topbar.offsetHeight + tabbar.offsetHeight;
-    var panels = elid("panels");
-    panels.style.top = panelTop + "px";
-    drawgraph(true);
-  }
-
-  // ─── Timer / mode controls ───
-  function setMode(newmode) {
-    mode = newmode;
-    localStorage.xpmeter_mode = newmode;
-    fixintervals();
-    drawmeter();
-    drawgraph(true);
-  }
-
-  function clickTimer() {
-    setMode(mode === "fixed" ? "start" : "fixed");
-    var radios = document.querySelectorAll('input[name="mode"]');
-    radios.forEach(function(r) { r.checked = r.value === mode; });
-  }
-
-  function dblClickTimer() {
-    measurestart = Date.now() - 1;
-    setMode("start");
-  }
-
-  function resetStartPoint() {
-    measurestart = Date.now() - 1;
-    totalSessionXp = {};
-    elid("xpgained").textContent = "";
-    fixintervals();
-    drawmeter();
-    drawgraph(true);
-  }
-
-  function setFixedDuration(min) {
-    fixedtime = min * 60000;
-    localStorage.xpmeter_sampletime = fixedtime;
-    elid("durationLabel").textContent = min + " min";
-    fixintervals();
-    drawmeter();
-    drawgraph(true);
-  }
-
-  // ─── AFK Alert ───
-  function toggleAfkAlert() {
-    afkAlertEnabled = elid("afkToggle").checked;
-    localStorage.xpmeter_afk = afkAlertEnabled ? "true" : "false";
-    fixAfkAlert();
-  }
-
-  function setAfkTime(sec) {
-    afkAlertTime = sec * 1000;
-    localStorage.xpmeter_afktime = afkAlertTime;
-    elid("afkLabel").textContent = sec + " s";
-  }
-
-  function fixAfkAlert() {
-    if (!afkAlertEnabled || !lastchange) {
-      if (tooltipout && typeof alt1 !== "undefined") {
-        alt1.clearTooltip();
-        tooltipout = false;
-      }
-      if (tooltiptimeout) { clearTimeout(tooltiptimeout); tooltiptimeout = null; }
-      return;
-    }
-
-    var next = lastchange + afkAlertTime;
-    if (tooltiptimeout) { clearTimeout(tooltiptimeout); tooltiptimeout = null; }
-
-    if (next <= Date.now()) {
-      if (!tooltipout) {
-        if (typeof alt1 !== "undefined") {
-          alt1.setTooltip("No XP gained! Check RuneScape");
-        }
-        setStatus("afk");
-        tooltipout = true;
-      }
-    } else {
-      if (tooltipout) {
-        if (typeof alt1 !== "undefined") alt1.clearTooltip();
-        tooltipout = false;
-        setStatus("active");
-      }
-      tooltiptimeout = setTimeout(fixAfkAlert, next - Date.now() + 50);
-    }
-  }
-
-  // ─── Errors (from original) ───
-  function xpcounterRoundError() {
-    if (localStorage.xpmeter_roundwarning === "true") return;
-    // Simple inline warning instead of popup (works without promptbox2)
-    var msg = "Your RuneMetrics is set to round XP. For accurate tracking, open RuneMetrics settings and enable 'show precise values'.";
-    if (typeof alt1 !== "undefined") {
-      alt1.setTooltip(msg);
-      setTimeout(function() { alt1.clearTooltip(); }, 8000);
-    }
-    console.warn("XPMeter:", msg);
-    localStorage.xpmeter_roundwarning = "true";
-  }
+  function xpcounterRoundError(){if(localStorage.xpmeter_roundwarning==="true")return;var msg="Enable 'show precise values' in RuneMetrics settings for accurate tracking.";if(typeof alt1!=="undefined"){alt1.setTooltip(msg);setTimeout(function(){alt1.clearTooltip();},8000);}localStorage.xpmeter_roundwarning="true";}
 
   </script>
 </body>
